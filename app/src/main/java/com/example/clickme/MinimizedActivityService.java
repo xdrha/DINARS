@@ -172,15 +172,19 @@ public class MinimizedActivityService extends Service{
         mIsPaused = false;
         startPretendLongRunningTask();
     }
+
     public Boolean getIsPaused(){
         return mIsPaused;
     }
+
     public int getProgress(){
         return mProgress;
     }
+
     public int getMaxValue(){
         return mMaxValue;
     }
+
     public void resetTask(){
         mProgress = 0;
     }

@@ -40,6 +40,8 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
     private int dispWidth;
     private int dispHeight;
     private int displayMode;
+    public Boolean minimized = false;
+
 
     public class MjpegViewThread extends Thread {
         private SurfaceHolder mSurfaceHolder;
@@ -114,24 +116,26 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
                         c = mSurfaceHolder.lockCanvas();
                         synchronized (mSurfaceHolder) {
                             try {
-                                bm = mIn.readMjpegFrame();
-                                destRect = destRect(bm.getWidth(),bm.getHeight());
-                                c.drawColor(Color.BLACK);
-                                c.drawBitmap(bm, null, destRect, p);
-                                if(showFps) {
-                                    p.setXfermode(mode);
-                                    if(ovl != null) {
-                                        height = ((ovlPos & 1) == 1) ? destRect.top : destRect.bottom-ovl.getHeight();
-                                        width  = ((ovlPos & 8) == 8) ? destRect.left : destRect.right -ovl.getWidth();
-                                        c.drawBitmap(ovl, width, height, null);
-                                    }
-                                    p.setXfermode(null);
-                                    frameCounter++;
-                                    if((System.currentTimeMillis() - start) >= 1000) {
-                                        fps = String.valueOf(frameCounter)+" fps";
-                                        frameCounter = 0;
-                                        start = System.currentTimeMillis();
-                                        ovl = makeFpsOverlay(overlayPaint, fps);
+                                if(!minimized) {
+                                    bm = mIn.readMjpegFrame();
+                                    destRect = destRect(bm.getWidth(), bm.getHeight());
+                                    c.drawColor(Color.BLACK);
+                                    c.drawBitmap(bm, null, destRect, p);
+                                    if (showFps) {
+                                        p.setXfermode(mode);
+                                        if (ovl != null) {
+                                            height = ((ovlPos & 1) == 1) ? destRect.top : destRect.bottom - ovl.getHeight();
+                                            width = ((ovlPos & 8) == 8) ? destRect.left : destRect.right - ovl.getWidth();
+                                            c.drawBitmap(ovl, width, height, null);
+                                        }
+                                        p.setXfermode(null);
+                                        frameCounter++;
+                                        if ((System.currentTimeMillis() - start) >= 1000) {
+                                            fps = String.valueOf(frameCounter) + " fps";
+                                            frameCounter = 0;
+                                            start = System.currentTimeMillis();
+                                            ovl = makeFpsOverlay(overlayPaint, fps);
+                                        }
                                     }
                                 }
                             } catch (IOException e) {
@@ -168,6 +172,7 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
 
     public void startPlayback() {
         if(mIn != null) {
+            System.out.println("///////////////////////////// KEDY sa toto zzavola dopici");
             mRun = true;
             thread.start();
         }
@@ -188,7 +193,8 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public MjpegView(Context context, AttributeSet attrs) {
-        super(context, attrs); init(context);
+        super(context, attrs);
+        init(context);
     }
 
     public void surfaceChanged(SurfaceHolder holder, int f, int w, int h) {

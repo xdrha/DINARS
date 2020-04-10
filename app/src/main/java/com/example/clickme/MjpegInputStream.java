@@ -73,4 +73,5 @@ public class MjpegInputStream extends DataInputStream {
         readFully(frameData);
         return BitmapFactory.decodeStream(new ByteArrayInputStream(frameData));
     }
+
 }
