@@ -20,7 +20,6 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
     public final static int SIZE_BEST_FIT   = 4;
     public final static int SIZE_FULLSCREEN = 8;
 
-    //private MjpegViewService thread;
     public MjpegInputStream mIn = null;
     private boolean showFps = false;
     public boolean mRun = false;
@@ -35,13 +34,9 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
     public Boolean minimized = false;
     public SurfaceHolder holder;
 
-
-
-
     public void init(Context context) {
         holder = getHolder();
         holder.addCallback(this);
-        //thread = new MjpegViewService(holder, context);
         setFocusable(true);
         overlayPaint = new Paint();
         overlayPaint.setTextAlign(Paint.Align.LEFT);
@@ -53,13 +48,6 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
         displayMode = MjpegView.SIZE_STANDARD;
         dispWidth = getWidth();
         dispHeight = getHeight();
-    }
-
-    public void startPlayback() {
-        if(mIn != null) {
-            System.out.println("///////////////////////////// KEDY sa toto zzavola dopici");
-            mRun = true;
-        }
     }
 
     public void stopPlayback() {

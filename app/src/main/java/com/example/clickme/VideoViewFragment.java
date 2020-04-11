@@ -110,7 +110,15 @@ public class VideoViewFragment extends Fragment {
         break_button.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
+                if(MVS.isPaused) {
+                    MVS.isPaused = false;
+                }
+                else{
+                    MVS.isPaused = true;
+                }
 
+                Intent intent = new Intent(getActivity(), CvActivity.class);
+                getActivity().startActivity(intent);
             }
         });
 
@@ -236,13 +244,13 @@ public class VideoViewFragment extends Fragment {
         super.onPause();
         //mv.stopPlayback();
         System.out.println("////////////////////////////////// PAUSOL SOM TO");
-        MVS.minimized = true;
+        MVS.isMinimized = true;
     }
 
     public void onResume(){
         super.onResume();
         if(MVS != null) {
-            MVS.minimized = false;
+            MVS.isMinimized = false;
         }
     }
 

@@ -2,7 +2,9 @@ package com.example.clickme;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -15,7 +17,23 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.view.SurfaceHolder;
 
+import org.opencv.android.Utils;
+import org.opencv.core.DMatch;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfDMatch;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Scalar;
+import org.opencv.features2d.DescriptorExtractor;
+import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
+import org.opencv.imgproc.Imgproc;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
 
 public class MjpegViewService extends Service {
     public SurfaceHolder mSurfaceHolder;
@@ -35,8 +53,38 @@ public class MjpegViewService extends Service {
     private int dispWidth;
     private int dispHeight;
     private int displayMode;
-    public Boolean minimized = false;
-    public SurfaceHolder holder;
+    public Boolean isMinimized = false;
+    public Boolean isPaused = false;
+
+    //TODO OpenCV variables
+    Mat mat = new Mat();
+    Mat descriptors2,descriptors1;
+    FeatureDetector detector;
+    DescriptorExtractor descriptor;
+    MatOfKeyPoint keypoints1,keypoints2;
+    DescriptorMatcher matcher;
+    Mat img1;
+    Scalar RED = new Scalar(255, 0, 0);
+    Scalar GREEN = new Scalar(0, 255, 0);
+
+    public void initializeOpenCVDependencies() throws IOException{
+        detector = FeatureDetector.create(FeatureDetector.ORB);
+        descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+        img1 = new Mat();
+        AssetManager assetManager = getAssets();
+        InputStream istr = assetManager.open("hand.jpeg");
+        Bitmap bitmap = BitmapFactory.decodeStream(istr);
+        Utils.bitmapToMat(bitmap, img1);
+        Imgproc.cvtColor(img1, img1, Imgproc.COLOR_RGB2GRAY);
+        img1.convertTo(img1, 0); //converting the image to match with the type of the cameras image
+        descriptors1 = new Mat();
+        keypoints1 = new MatOfKeyPoint();
+        detector.detect(img1, keypoints1);
+        descriptor.compute(img1, keypoints1, descriptors1);
+        System.out.println("//////////////////////////////////////// PODARILO SA INICIALIZOVAT");
+    }
+
 
     public void setDisplayMode(int s) {
         displayMode = s;
@@ -56,6 +104,12 @@ public class MjpegViewService extends Service {
     public void onCreate() {
         super.onCreate();
         mHandler = new Handler();
+        try {
+            initializeOpenCVDependencies();
+        } catch (IOException e) {
+            System.out.println("//////////////////////////////////////// NEPODARILO SA INICIALIZOVAT");
+            e.printStackTrace();
+        }
     }
 
     public class MyBinder extends Binder {
@@ -64,11 +118,10 @@ public class MjpegViewService extends Service {
         }
     }
 
-    /*public MjpegViewService(SurfaceHolder surfaceHolder, Context context) {
-        mSurfaceHolder = surfaceHolder;
-    }*/
-
     private Rect destRect(int bmw, int bmh) {
+
+        /*bmw = 1280 / bmh = 720*/
+
         int tempx;
         int tempy;
         if (displayMode == MjpegView.SIZE_STANDARD) {
@@ -115,6 +168,55 @@ public class MjpegViewService extends Service {
         return bm;
     }
 
+    public Mat recognize(Mat aInputFrame) {
+
+        Imgproc.cvtColor(aInputFrame, aInputFrame, Imgproc.COLOR_RGB2GRAY);
+        descriptors2 = new Mat();
+        keypoints2 = new MatOfKeyPoint();
+        detector.detect(aInputFrame, keypoints2);
+        descriptor.compute(aInputFrame, keypoints2, descriptors2);
+
+        // Matching
+        MatOfDMatch matches = new MatOfDMatch();
+        if (img1.type() == aInputFrame.type()) {
+            matcher.match(descriptors1, descriptors2, matches);
+        } else {
+            System.out.println("////////////////// NEZHODLI SA TYPY :((");
+            return aInputFrame;
+        }
+        List<DMatch> matchesList = matches.toList();
+
+        Double max_dist = 0.0;
+        Double min_dist = 100.0;
+
+        for (int i = 0; i < matchesList.size(); i++) {
+            Double dist = (double) matchesList.get(i).distance;
+            if (dist < min_dist)
+                min_dist = dist;
+            if (dist > max_dist)
+                max_dist = dist;
+        }
+
+        LinkedList<DMatch> good_matches = new LinkedList<DMatch>();
+        for (int i = 0; i < matchesList.size(); i++) {
+            if (matchesList.get(i).distance <= (1.5 * min_dist)) {
+                good_matches.addLast(matchesList.get(i));
+            }
+        }
+
+        MatOfDMatch goodMatches = new MatOfDMatch();
+        goodMatches.fromList(good_matches);
+        Mat outputImg = new Mat();
+        MatOfByte drawnMatches = new MatOfByte();
+        if (aInputFrame.empty() || aInputFrame.cols() < 1 || aInputFrame.rows() < 1) {
+            return aInputFrame;
+        }
+        Features2d.drawMatches(img1, keypoints1, aInputFrame, keypoints2, goodMatches, outputImg, GREEN, RED, drawnMatches, Features2d.NOT_DRAW_SINGLE_POINTS);
+        Imgproc.resize(outputImg, outputImg, aInputFrame.size());
+
+        return outputImg;
+    }
+
     public void startPretendLongRunningTask() {
         final Runnable runnable = new Runnable() {
             @Override
@@ -137,7 +239,14 @@ public class MjpegViewService extends Service {
                                 try {
 
                                     bm = mIn.readMjpegFrame();
-                                    if (!minimized && c != null) {
+                                    //
+                                    //TODO: tu sa bude diat rozpoznavanie veci atd.
+                                    //
+                                    Utils.bitmapToMat(bm,mat);
+                                    mat = recognize(mat);
+                                    Utils.matToBitmap(mat, bm);
+
+                                    if (!isMinimized && c != null) {
                                         destRect = destRect(bm.getWidth(), bm.getHeight());
                                         c.drawColor(Color.BLACK);
                                         c.drawBitmap(bm, null, destRect, p);
