@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,9 +60,10 @@ public class VideoViewFragment extends Fragment {
         final Button capture_button = view.findViewById(R.id.capture_button);
         final Button statistics_button = view.findViewById(R.id.statistics_button);
         final ImageButton break_button = view.findViewById(R.id.break_button);
-        final ImageButton maximize_button = view.findViewById(R.id.maximize_button);
+        final ImageButton minimize_button = view.findViewById(R.id.minimize_button);
         final ImageView stop_image = view.findViewById(R.id.stop_image);
         final ImageView warning_image = view.findViewById(R.id.warning_image);
+        final LinearLayout lll = view.findViewById(R.id.lll);
 
         capture_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -116,18 +118,16 @@ public class VideoViewFragment extends Fragment {
                 else{
                     MVS.isPaused = true;
                 }
-
-                Intent intent = new Intent(getActivity(), CvActivity.class);
-                getActivity().startActivity(intent);
             }
         });
 
 
-        maximize_button.setOnClickListener(new View.OnClickListener() {
+        minimize_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mv.minimized = true;
-                getActivity().moveTaskToBack(true);
+                MAVM.setIsUpdating(true);
+                getActivity().moveTaskToBack(false);
                 getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
                 MAS.resumeInterface();
             }
@@ -137,25 +137,26 @@ public class VideoViewFragment extends Fragment {
             @Override
             public void onClick(View view) {
 
-                toggleUpdates();
+                System.out.println("mv height " + mv.getHeight());
+                System.out.println("mv width " + mv.getWidth());
 
-                System.out.println("distraction_label height" + mv.getHeight());
-                System.out.println("distraction_label width" + mv.getWidth());
+                System.out.println("distraction_label height " + distraction_label.getHeight());
+                System.out.println("distraction_label textsize " + distraction_label.getWidth());
 
-                System.out.println("distraction_level_bar height" + distraction_level_bar.getHeight());
-                System.out.println("distraction_level_bar width" + distraction_level_bar.getWidth());
+                System.out.println("distraction_level_bar height " + distraction_level_bar.getHeight());
+                System.out.println("distraction_level_bar width " + distraction_level_bar.getWidth());
 
-                System.out.println("distraction_value height" + distraction_value.getGravity());
-                System.out.println("distraction_value width" + distraction_value.getTextSize());
+                System.out.println("distraction_value height " + distraction_value.getHeight());
+                System.out.println("distraction_value width " + distraction_value.getWidth());
 
-                System.out.println("warning_image height" + warning_image.getHeight());
-                System.out.println("warning_image width" + warning_image.getWidth());
+                System.out.println("warning_image height " + warning_image.getHeight());
+                System.out.println("warning_image width " + warning_image.getWidth());
 
-                System.out.println("stop_image height" + stop_image.getHeight());
-                System.out.println("stop_image width" + stop_image.getWidth());
+                System.out.println("stop_image height " + stop_image.getHeight());
+                System.out.println("stop_image width " + stop_image.getWidth());
 
-                System.out.println("maximize height" + maximize_button.getHeight());
-                System.out.println("maximize width" + maximize_button.getWidth());
+                System.out.println("maximize height " + minimize_button.getHeight());
+                System.out.println("maximize width " + minimize_button.getWidth());
             }
         });
 
@@ -199,37 +200,22 @@ public class VideoViewFragment extends Fragment {
                     @Override
                     public void run() {
                         if(aBoolean){
-                            if(MAVM.getBinder().getValue() != null){
-                                if(MAS.getProgress() == MAS.getMaxValue()){
-                                    MAVM.setIsUpdating(false);
-                                }
-                                MAS.distraction_level_bar.setProgress(MAS.getProgress());
-                                MAS.distraction_level_bar.setMax(MAS.getMaxValue());
-                                distraction_level_bar.setProgress(MAS.getProgress());
-                                distraction_level_bar.setMax(MAS.getMaxValue());
-                                handler.postDelayed(this, 100);
-                            }
 
-                        }
-                        else{
-                            handler.removeCallbacks(this);
+                            System.out.println("////////////////////// CHECK");
+                            if(MAS.maximize){
+                                //vypni service, zapni main
+                                System.out.println("////////////////////// TOTO  SA VYKONA");
+                                MAS.maximize = false;
+                                handler.removeCallbacks(this);
+                                moveMainActivityToFront();
+                            }
+                            else{
+                                handler.postDelayed(this, 200);
+                            }
                         }
                     }
                 };
-
-                if(aBoolean){
-                    distraction_value.setText("HAHA");
-                    handler.postDelayed(runnable, 100);
-                }
-                else{
-                    if (MAS.getProgress() == MAS.getMaxValue()){
-                        distraction_value.setText("NIE");
-                    }
-                    else{
-                        distraction_value.setText("KOKOTINA");
-                    }
-                }
-
+                handler.postDelayed(runnable, 200);
             }
         });
 
@@ -238,6 +224,13 @@ public class VideoViewFragment extends Fragment {
 
         return view;
 
+    }
+
+    public void moveMainActivityToFront(){
+        Toast.makeText(getContext(), "MAKING MOVING MAIN ACTIVITY TO FRONT", Toast.LENGTH_SHORT).show();
+        Intent mainActivity = new Intent(getActivity(), MainActivity.class);
+        mainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(mainActivity);
     }
 
     public void onPause(){
@@ -277,27 +270,6 @@ public class VideoViewFragment extends Fragment {
         Intent serviceIntent = new Intent(getActivity(), MjpegViewService.class);
         getActivity().bindService(serviceIntent, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
     }
-
-    private void toggleUpdates(){
-        if(MAS != null){
-            if(MAS.getProgress() == MAS.getMaxValue()){
-                MAS.resetTask();
-            }
-            else{
-                if(MAS.getIsPaused()){
-                    MAS.unPause();
-                    MAVM.setIsUpdating(true);
-                }
-                else{
-                    MAS.pause();
-                    MAVM.setIsUpdating(false);
-                }
-            }
-        }
-    }
-
-
-
 
     public class DoRead extends AsyncTask<String, Void, MjpegInputStream> {
 
@@ -340,7 +312,7 @@ public class VideoViewFragment extends Fragment {
                     MVS.mRun = true;
                     System.out.println("////////////////////////////////////////////////// Input stream nie je null");
                     MVS.mSurfaceHolder = mv.holder;
-                    MVS.setSurfaceSize(1002, 639);
+                    MVS.setSurfaceSize(803, 476);
                     MVS.startPretendLongRunningTask();
 
                     System.out.println("////////////////////////////////////////////////// zacak konat");

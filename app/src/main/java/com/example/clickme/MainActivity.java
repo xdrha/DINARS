@@ -4,25 +4,17 @@ import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
-
-import com.android.volley.RequestQueue;
 
 import org.opencv.android.OpenCVLoader;
 
 
 public class MainActivity extends AppCompatActivity {
 
-    RequestQueue queue;
-    public final static String URL_ROOT = "http://192.168.0.129:5000/";
-
-    MinimizedActivityService MAS;
-    MainActivityViewModel MAVM;
-    private SectionsStatePagerAdapter sectionsStatePagerAdapter;
     private ViewPager mViewPager;
-
 
     @Override
     protected void onResume()
@@ -30,12 +22,22 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         overridePendingTransition(R.anim.slide_from_top,R.anim.slide_in_top);
 
-        if(!OpenCVLoader.initDebug()){
+        Toast.makeText(this, "RESUME DONE", Toast.LENGTH_SHORT).show();
 
-        }
-        else{
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
-        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Toast.makeText(this, "DESTROY DONE", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Toast.makeText(this, "STOP DONE", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -54,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("dpHeight" + dpHeight);
         System.out.println("dpWidth" + dpWidth);
 
+        Toast.makeText(this, "ON CREATE", Toast.LENGTH_SHORT).show();
+
 
         if(OpenCVLoader.initDebug()){
             Toast.makeText(getApplicationContext(), "OpenCV initialization successful", Toast.LENGTH_LONG).show();
@@ -62,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "ERROR: in OpenCV initialization", Toast.LENGTH_LONG).show();
         }
 
-        sectionsStatePagerAdapter = new SectionsStatePagerAdapter(getSupportFragmentManager());
         mViewPager = findViewById(R.id.container);
         setupViewPager(mViewPager);
         setViewPager(0);

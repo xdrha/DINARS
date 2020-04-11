@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 public class MinimizedActivityService extends Service{
@@ -35,6 +36,7 @@ public class MinimizedActivityService extends Service{
     private Handler mHandler;
     private int mProgress, mMaxValue;
     private boolean mIsPaused;
+    public boolean maximize = false;
 
     public class MyBinder extends Binder {
         MinimizedActivityService getService(){
@@ -68,13 +70,14 @@ public class MinimizedActivityService extends Service{
 
         LL = new LinearLayout(this);
         LL.setOrientation(LinearLayout.HORIZONTAL);
+
         LL.setPadding(10,10,10,10);
         LL.setBackgroundColor(0xbf222222);
         LL.setGravity(Gravity.CENTER);
         LL.setAlpha(1f);
 
         distraction_label = new TextView(this);
-        distraction_label.setLayoutParams(new LinearLayout.LayoutParams(215, 47));
+        distraction_label.setLayoutParams(new LinearLayout.LayoutParams(177, 35));
         distraction_label.setText("Distraction level");
         distraction_label.setGravity(Gravity.CENTER);
         distraction_label.setTextSize(18);
@@ -83,24 +86,24 @@ public class MinimizedActivityService extends Service{
         distraction_level_bar.setMax(10);
         distraction_level_bar.setScaleY(2);
         distraction_level_bar.setProgress(4);
-        distraction_level_bar.setLayoutParams(new LinearLayout.LayoutParams(666,47));
+        distraction_level_bar.setLayoutParams(new LinearLayout.LayoutParams(450,35));
 
         distraction_value = new TextView(this);
-        distraction_value.setLayoutParams(new LinearLayout.LayoutParams(101, 47));
+        distraction_value.setLayoutParams(new LinearLayout.LayoutParams(92, 35));
         distraction_value.setText("  0.0");
         distraction_value.setGravity(Gravity.CENTER);
-        distraction_value.setTextSize(30);
+        distraction_value.setTextSize(25);
 
         warning_image = new ImageView(this);
-        warning_image.setLayoutParams(new LinearLayout.LayoutParams(89, 47));
+        warning_image.setLayoutParams(new LinearLayout.LayoutParams(92, 35));
         warning_image.setImageResource(R.drawable.warning);
 
         stop_image = new ImageView(this);
-        stop_image.setLayoutParams(new LinearLayout.LayoutParams(90, 47));
+        stop_image.setLayoutParams(new LinearLayout.LayoutParams(93, 35));
         stop_image.setImageResource(R.drawable.stop);
 
         maximize_button = new ImageButton(this);
-        maximize_button.setLayoutParams(new LinearLayout.LayoutParams(93, 47));
+        maximize_button.setLayoutParams(new LinearLayout.LayoutParams(100, 35));
         maximize_button.setImageResource(android.R.drawable.arrow_down_float);
 
         LL.addView(distraction_label);
@@ -119,31 +122,38 @@ public class MinimizedActivityService extends Service{
         params.gravity = Gravity.TOP;
         params.x = 0;
         params.y = 0;
-        params.width = 1280;
-        params.height = 73;
+        params.width = 1024;
+        params.height = 55;
 
         maximize_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent main_activity = new Intent(MinimizedActivityService.this, MainActivity.class);
+                /*Intent main_activity = new Intent(MinimizedActivityService.this, MainActivity.class);
                 main_activity.setAction(Intent.ACTION_MAIN);
                 main_activity.addCategory(Intent.CATEGORY_LAUNCHER);
                 main_activity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(main_activity);
-                onDestroy();
+                startActivity(main_activity);*/
+
+                maximize = true;
+                destroy();
             }
         });
 
     }
 
+    public void destroy(){
+        Toast.makeText(getApplicationContext(), "LL DESTROYED", Toast.LENGTH_SHORT).show();
+        wm.removeView(LL);
+    }
+
     @Override
     public void onDestroy() {
+
         wm.removeView(LL);
         super.onDestroy();
     }
 
     public void resumeInterface(){
-
         wm.addView(LL, params);
     }
 
