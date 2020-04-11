@@ -32,7 +32,7 @@
         <service
             android:name=".MinimizedActivityService"
             android:exported="false" />
-        <service android:name=".VideoStreamService"/>
+        <service android:name="MjpegViewService" />
     </application>
 
 </manifest>

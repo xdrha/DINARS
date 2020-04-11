@@ -2,6 +2,7 @@ package com.example.clickme;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.StrictMode;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -21,11 +22,19 @@ public class MjpegInputStream extends DataInputStream {
     private final static int FRAME_MAX_LENGTH = 40000 + HEADER_MAX_LENGTH;
     private int mContentLength = -1;
 
+
+
     public MjpegInputStream(InputStream in) {
         super(new BufferedInputStream(in, FRAME_MAX_LENGTH));
+
+
     }
 
     private int getEndOfSeqeunce(DataInputStream in, byte[] sequence) throws IOException {
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
         int seqIndex = 0;
         byte c;
         for(int i=0; i < FRAME_MAX_LENGTH; i++) {

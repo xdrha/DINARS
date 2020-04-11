@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -29,6 +30,9 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class VideoViewFragment extends Fragment {
 
     private static final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
@@ -40,7 +44,8 @@ public class VideoViewFragment extends Fragment {
     private MjpegView mv;
 
     private VideoViewFragmentViewModel VVFVM;
-    private VideoStreamService VSS;
+    private MjpegViewService MVS;
+    private MjpegInputStream result;
 
     @Nullable
     @Override
@@ -124,11 +129,7 @@ public class VideoViewFragment extends Fragment {
             @Override
             public void onClick(View view) {
 
-                //toggleUpdates();
-                if(VSS != null){
-                    VSS.startPretendLongRunningTask();
-                    VVFVM.setIsUpdating(true);
-                }
+                toggleUpdates();
 
                 System.out.println("distraction_label height" + mv.getHeight());
                 System.out.println("distraction_label width" + mv.getWidth());
@@ -152,53 +153,18 @@ public class VideoViewFragment extends Fragment {
 
         VVFVM = ViewModelProviders.of(this).get(VideoViewFragmentViewModel.class);
 
-        VVFVM.getBinder().observe(this, new Observer<VideoStreamService.MyBinder>() {
+        VVFVM.getBinder().observe(this, new Observer<MjpegViewService.MyBinder>() {
             @Override
-            public void onChanged(@Nullable VideoStreamService.MyBinder myBinder) {
+            public void onChanged(@Nullable MjpegViewService.MyBinder myBinder) {
                 if(myBinder != null){
-                    VSS = myBinder.getService();
+                    MVS = myBinder.getService();
+                    System.out.println("////////////////// NIE JE NULL DOPICEE");
+                    new DoRead().execute(URL);
                 }
                 else{
-                    VSS = null;
+                    MVS = null;
+                    System.out.println("////////////////// JE NULL DOPICEE");
                 }
-            }
-        });
-
-        VVFVM.getIsProgressUpdating().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable final Boolean aBoolean) {
-                final Handler handler = new Handler();
-                final Runnable runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if(aBoolean){
-                            if(VVFVM.getBinder().getValue() != null){
-                                if(VSS.getResult() != null && VSS.isNotSet()) {
-                                    VSS.setResult();
-                                    System.out.println("////////////////////////// toto sa vykonalo huraaaaaa");
-                                    mv.setSource(VSS.getResult());
-                                    mv.setDisplayMode(MjpegView.SIZE_BEST_FIT);
-                                    mv.showFps(true);
-                                    VVFVM.setIsUpdating(false);
-                                    handler.postDelayed(this, 100);
-                                }
-                                else{
-                                    handler.postDelayed(this, 100);
-                                    System.out.println("////////////////////////// najprv nie");
-                                }
-                            }
-                            else{
-                                System.out.println("////////////////////////// mega strasna vec");
-                            }
-                        }
-                        else{
-                            System.out.println("////////////////////////// kokotina ale strasna....");
-                            VVFVM.setIsUpdating(false);
-                            handler.removeCallbacks(this);
-                        }
-                    }
-                };
-                handler.postDelayed(runnable, 100);
             }
         });
 
@@ -227,10 +193,8 @@ public class VideoViewFragment extends Fragment {
                         if(aBoolean){
                             if(MAVM.getBinder().getValue() != null){
                                 if(MAS.getProgress() == MAS.getMaxValue()){
-                                    System.out.println("/////////////////////// ZASTAVI TO....");
                                     MAVM.setIsUpdating(false);
                                 }
-                                System.out.println("/////////////////////// VYKRESLUJE....");
                                 MAS.distraction_level_bar.setProgress(MAS.getProgress());
                                 MAS.distraction_level_bar.setMax(MAS.getMaxValue());
                                 distraction_level_bar.setProgress(MAS.getProgress());
@@ -240,7 +204,6 @@ public class VideoViewFragment extends Fragment {
 
                         }
                         else{
-                            System.out.println("/////////////////////// FALSE....");
                             handler.removeCallbacks(this);
                         }
                     }
@@ -249,16 +212,13 @@ public class VideoViewFragment extends Fragment {
                 if(aBoolean){
                     distraction_value.setText("HAHA");
                     handler.postDelayed(runnable, 100);
-                    System.out.println("/////////////////////// SETUJE NA HAHA....");
                 }
                 else{
                     if (MAS.getProgress() == MAS.getMaxValue()){
                         distraction_value.setText("NIE");
-                        System.out.println("/////////////////////// SETUJE NA NIE....");
                     }
                     else{
                         distraction_value.setText("KOKOTINA");
-                        System.out.println("/////////////////////// SETUJE NA KOKOTINA....");
                     }
                 }
 
@@ -268,7 +228,6 @@ public class VideoViewFragment extends Fragment {
         startService1();
         startService2();
 
-        //new DoRead().execute(URL);
         return view;
 
     }
@@ -276,12 +235,15 @@ public class VideoViewFragment extends Fragment {
     public void onPause(){
         super.onPause();
         //mv.stopPlayback();
-        mv.minimized = true;
+        System.out.println("////////////////////////////////// PAUSOL SOM TO");
+        MVS.minimized = true;
     }
 
     public void onResume(){
         super.onResume();
-        mv.minimized = false;
+        if(MVS != null) {
+            MVS.minimized = false;
+        }
     }
 
     public void startService1(){
@@ -297,14 +259,14 @@ public class VideoViewFragment extends Fragment {
     }
 
     public void startService2(){
-        Intent serviceIntent = new Intent(getActivity(), VideoStreamService.class);
+        Intent serviceIntent = new Intent(getActivity(), MjpegViewService.class);
         getActivity().startService(serviceIntent);
 
         bindService2();
     }
 
     public void bindService2(){
-        Intent serviceIntent = new Intent(getActivity(), VideoStreamService.class);
+        Intent serviceIntent = new Intent(getActivity(), MjpegViewService.class);
         getActivity().bindService(serviceIntent, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
     }
 
@@ -329,12 +291,12 @@ public class VideoViewFragment extends Fragment {
 
 
 
-    /*public class DoRead extends AsyncTask<String, Void, MjpegInputStream> {
+    public class DoRead extends AsyncTask<String, Void, MjpegInputStream> {
 
         protected MjpegInputStream doInBackground(String... Url) {
             //TODO: if camera has authentication deal with it and don't just not work
 
-            System.out.println("//////////////////////////////////////////////////1. Sending http request");
+            System.out.println("////////////////////////////////////////////////// 1. Sending http request");
             try {
                 java.net.URL url = new URL(Url[0]); // here is your URL path
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -342,26 +304,47 @@ public class VideoViewFragment extends Fragment {
                 conn.setConnectTimeout(150);
                 int responseCode = conn.getResponseCode();
 
-                System.out.println("//////////////////////////////////////////////////2. Request finished, status = " + responseCode);
+                System.out.println("////////////////////////////////////////////////// 2. Request finished, status = " + responseCode);
                 if (responseCode == 401) {
                     return null;
                 }
                 return new MjpegInputStream(conn.getInputStream());
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("//////////////////////////////////////////////////Request failed-ClientProtocolException");
+                System.out.println("////////////////////////////////////////////////// Request failed-ClientProtocolException");
                 //Error connecting to camera
             }
             return null;
         }
 
-        protected void onPostExecute(MjpegInputStream result) {
-            if (result != null) {
-                System.out.println("//////////////////////////////////////////////////tu sa nieco stale deje");
-                mv.setSource(result);
-                mv.setDisplayMode(MjpegView.SIZE_BEST_FIT);
-                mv.showFps(true);
+        protected void onPostExecute(MjpegInputStream res) {
+
+
+            if (res != null) {
+                System.out.println("////////////////////////////////////////////////// OKEY HOTOVKA");
+                mv.mIn = res;
+                result = res;
+                VVFVM.setIsUpdating(true);
+
+                if(mv.mIn != null) {
+                    MVS.mIn = result;
+                    mv.mRun = true;
+                    MVS.mRun = true;
+                    System.out.println("////////////////////////////////////////////////// Input stream nie je null");
+                    MVS.mSurfaceHolder = mv.holder;
+                    MVS.setSurfaceSize(1002, 639);
+                    MVS.startPretendLongRunningTask();
+
+                    System.out.println("////////////////////////////////////////////////// zacak konat");
+                    MVS.setDisplayMode(MjpegView.SIZE_BEST_FIT);
+
+                    MVS.showFps(true);
+
+                }
+
+
             }
+
         }
-    }*/
+    }
 }

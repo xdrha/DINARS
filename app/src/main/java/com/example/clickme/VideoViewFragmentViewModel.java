@@ -10,20 +10,20 @@ import android.os.IBinder;
 public class VideoViewFragmentViewModel extends ViewModel {
 
     private MutableLiveData<Boolean> mIsResultNull = new MutableLiveData<>();
-    private MutableLiveData<VideoStreamService.MyBinder> myBinder = new MutableLiveData<>();
+    private MutableLiveData<MjpegViewService.MyBinder> myBinder = new MutableLiveData<>();
 
     public LiveData<Boolean> getIsProgressUpdating(){
         return mIsResultNull;
     }
 
-    public LiveData<VideoStreamService.MyBinder> getBinder(){
+    public LiveData<MjpegViewService.MyBinder> getBinder(){
         return myBinder;
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            VideoStreamService.MyBinder binder = (VideoStreamService.MyBinder) iBinder;
+            MjpegViewService.MyBinder binder = (MjpegViewService.MyBinder) iBinder;
             myBinder.postValue(binder);
         }
 
