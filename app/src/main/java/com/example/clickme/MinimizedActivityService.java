@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Binder;
 import android.os.Handler;
@@ -29,14 +30,15 @@ public class MinimizedActivityService extends Service{
     public TextView distraction_value;
     public ImageView warning_image;
     public ImageView stop_image;
-    public ImageButton maximize_button;
+    public ImageButton close_button;
     private WindowManager.LayoutParams params;
 
     private IBinder mBinder = new MinimizedActivityService.MyBinder();
     private Handler mHandler;
     private int mProgress, mMaxValue;
     private boolean mIsPaused;
-    public boolean maximize = false;
+    public boolean hiden = false;
+    private Boolean added = false;
 
     public class MyBinder extends Binder {
         MinimizedActivityService getService(){
@@ -71,13 +73,13 @@ public class MinimizedActivityService extends Service{
         LL = new LinearLayout(this);
         LL.setOrientation(LinearLayout.HORIZONTAL);
 
-        LL.setPadding(10,10,10,10);
-        LL.setBackgroundColor(0xbf222222);
+        LL.setPadding(5,5,5,5);
+        LL.setBackgroundColor(0xaf000000);
         LL.setGravity(Gravity.CENTER);
         LL.setAlpha(1f);
 
         distraction_label = new TextView(this);
-        distraction_label.setLayoutParams(new LinearLayout.LayoutParams(177, 35));
+        distraction_label.setLayoutParams(new LinearLayout.LayoutParams(178, 41));
         distraction_label.setText("Distraction level");
         distraction_label.setGravity(Gravity.CENTER);
         distraction_label.setTextSize(18);
@@ -86,32 +88,33 @@ public class MinimizedActivityService extends Service{
         distraction_level_bar.setMax(10);
         distraction_level_bar.setScaleY(2);
         distraction_level_bar.setProgress(4);
-        distraction_level_bar.setLayoutParams(new LinearLayout.LayoutParams(450,35));
+        distraction_level_bar.setLayoutParams(new LinearLayout.LayoutParams(454,41));
 
         distraction_value = new TextView(this);
-        distraction_value.setLayoutParams(new LinearLayout.LayoutParams(92, 35));
+        distraction_value.setLayoutParams(new LinearLayout.LayoutParams(93, 41));
         distraction_value.setText("  0.0");
         distraction_value.setGravity(Gravity.CENTER);
         distraction_value.setTextSize(25);
 
         warning_image = new ImageView(this);
-        warning_image.setLayoutParams(new LinearLayout.LayoutParams(92, 35));
+        warning_image.setLayoutParams(new LinearLayout.LayoutParams(93, 41));
         warning_image.setImageResource(R.drawable.warning);
 
         stop_image = new ImageView(this);
-        stop_image.setLayoutParams(new LinearLayout.LayoutParams(93, 35));
+        stop_image.setLayoutParams(new LinearLayout.LayoutParams(94, 41));
         stop_image.setImageResource(R.drawable.stop);
 
-        maximize_button = new ImageButton(this);
-        maximize_button.setLayoutParams(new LinearLayout.LayoutParams(100, 35));
-        maximize_button.setImageResource(android.R.drawable.arrow_down_float);
+        close_button = new ImageButton(this);
+        close_button.setLayoutParams(new LinearLayout.LayoutParams(102, 41));
+        close_button.setBackgroundColor(Color.TRANSPARENT);
+        close_button.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
 
         LL.addView(distraction_label);
         LL.addView(distraction_level_bar);
         LL.addView(distraction_value);
         LL.addView(warning_image);
         LL.addView(stop_image);
-        LL.addView(maximize_button);
+        LL.addView(close_button);
 
         params = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -123,81 +126,43 @@ public class MinimizedActivityService extends Service{
         params.x = 0;
         params.y = 0;
         params.width = 1024;
-        params.height = 55;
+        params.height = 51;
 
-        maximize_button.setOnClickListener(new View.OnClickListener() {
+        close_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*Intent main_activity = new Intent(MinimizedActivityService.this, MainActivity.class);
-                main_activity.setAction(Intent.ACTION_MAIN);
-                main_activity.addCategory(Intent.CATEGORY_LAUNCHER);
-                main_activity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(main_activity);*/
-
-                maximize = true;
-                destroy();
+                Toast.makeText(getApplicationContext(), "Application is still running on background.", Toast.LENGTH_SHORT).show();
+                hideTopPanel();
             }
         });
 
     }
 
-    public void destroy(){
-        Toast.makeText(getApplicationContext(), "LL DESTROYED", Toast.LENGTH_SHORT).show();
-        wm.removeView(LL);
+    public void hideTopPanel(){
+        hiden = true;
+        if(added) {
+            wm.removeView(LL);
+            added = false;
+        }
     }
 
     @Override
     public void onDestroy() {
-
-        wm.removeView(LL);
+        if(added) {
+            wm.removeView(LL);
+            added = false;
+        }
         super.onDestroy();
     }
 
     public void resumeInterface(){
-        wm.addView(LL, params);
+        hiden = false;
+        if(!added) {
+            wm.addView(LL, params);
+            added = true;
+        }
     }
 
-    public void startPretendLongRunningTask(){
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                if(mProgress >= mMaxValue || mIsPaused){
-                    mHandler.removeCallbacks(this);
-                    pause();
-                }
-                else{
-                    mProgress += 100;
-                    mHandler.postDelayed(this, 100);
-                }
-            }
-        };
-        mHandler.postDelayed(runnable, 100);
-    }
-
-    public void pause(){
-        mIsPaused = true;
-    }
-
-    public void unPause(){
-        mIsPaused = false;
-        startPretendLongRunningTask();
-    }
-
-    public Boolean getIsPaused(){
-        return mIsPaused;
-    }
-
-    public int getProgress(){
-        return mProgress;
-    }
-
-    public int getMaxValue(){
-        return mMaxValue;
-    }
-
-    public void resetTask(){
-        mProgress = 0;
-    }
 
     @Override
     public void onTaskRemoved(Intent rootIntent){

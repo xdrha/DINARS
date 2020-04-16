@@ -56,7 +56,7 @@ public class MjpegInputStream extends DataInputStream {
         return (end < 0) ? (-1) : (end - sequence.length);
     }
 
-    private int parseContentLength(byte[] headerBytes) throws IOException, NumberFormatException {
+    private int parseContentLength(byte[] headerBytes) throws IOException, NumberFormatException, IllegalArgumentException {
         ByteArrayInputStream headerIn = new ByteArrayInputStream(headerBytes);
         Properties props = new Properties();
         props.load(headerIn);
@@ -66,6 +66,9 @@ public class MjpegInputStream extends DataInputStream {
     public Bitmap readMjpegFrame() throws IOException {
         mark(FRAME_MAX_LENGTH);
         int headerLen = getStartOfSequence(this, SOI_MARKER);
+        if(headerLen <= 0){
+            return null;
+        }
         reset();
         byte[] header = new byte[headerLen];
         readFully(header);

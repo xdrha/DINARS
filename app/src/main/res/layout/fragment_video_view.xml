@@ -10,6 +10,8 @@ android:orientation="vertical">
 
 <LinearLayout
     android:layout_width="match_parent"
+    android:id="@+id/lll"
+    android:background="@color/colorDark"
     android:layout_height="0dp"
     android:layout_weight=".90"
     android:orientation="horizontal"
@@ -21,7 +23,7 @@ android:orientation="vertical">
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight=".8"
+        android:layout_weight=".7844"
         android:orientation="vertical">
 
         <com.example.clickme.MjpegView
@@ -34,45 +36,62 @@ android:orientation="vertical">
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight=".2"
+        android:background="@color/colorDark"
+        android:layout_weight=".2156"
         android:orientation="vertical"
-        android:background="@android:color/transparent"
-        android:paddingLeft="16dp">
+        android:paddingLeft="10dp"
+        android:paddingRight="0dp"
+        android:paddingBottom="0dp">
 
+        <Button
+            android:id="@+id/minimize_button"
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.1733"
+            android:text="minimize"
+            android:textSize="18sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#424242" />
 
         <ImageButton
             android:id="@+id/break_button"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
-            android:layout_height="166dp"
+            android:layout_height="0dp"
+            android:layout_weight="0.48"
             app:srcCompat="@drawable/coffee" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="bottom"
-            android:orientation="vertical"
-            android:paddingTop="170dp"
+            android:layout_height="1dp"
+            android:background="#424242" />
+
+        <Button
+            android:id="@+id/statistics_button"
             android:background="@android:color/transparent"
-            android:paddingBottom="0dp">
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.1733"
+            android:text="statistics"
+            android:textSize="18sp" />
 
-            <Button
-                android:id="@+id/statistics_button"
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_weight="1"
-                android:text="statistics"
-                android:textSize="18sp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#424242" />
 
-            <Button
-                android:id="@+id/capture_button"
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_weight="1"
-                android:text="capture"
-                android:textSize="18sp" />
-
-        </LinearLayout>
-
+        <Button
+            android:id="@+id/capture_button"
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.1733"
+            android:text="capture"
+            android:textSize="18sp" />
 
     </LinearLayout>
 
@@ -80,21 +99,20 @@ android:orientation="vertical">
 
 <LinearLayout
     android:layout_width="match_parent"
-    android:id="@+id/lll"
     android:layout_height="0dp"
     android:layout_weight=".1"
-    android:background="@color/colorDark"
+    android:background="@color/colorBlack"
     android:orientation="horizontal"
-    android:paddingLeft="10dp"
-    android:paddingTop="10dp"
-    android:paddingRight="10dp"
-    android:paddingBottom="10dp">
+    android:paddingLeft="5dp"
+    android:paddingTop="5dp"
+    android:paddingRight="5dp"
+    android:paddingBottom="5dp">
 
     <TextView
         android:id="@+id/distraction_label"
-        android:layout_width="100dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.177"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         android:gravity="center"
         android:text="Distraction level"
         android:textSize="18sp" />
@@ -102,7 +120,8 @@ android:orientation="vertical">
     <ProgressBar
         android:id="@+id/distraction_level_bar"
         style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="450dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.45"
         android:layout_height="match_parent"
         android:max="10"
         android:progress="4"
@@ -110,31 +129,31 @@ android:orientation="vertical">
 
     <TextView
         android:id="@+id/distraction_value"
-        android:layout_width="15dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.092"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         android:gravity="center"
         android:text="  0.0"
         android:textSize="25sp" />
 
     <ImageView
         android:id="@+id/warning_image"
-        android:layout_width="15dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.092"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         app:srcCompat="@drawable/warning" />
 
     <ImageView
         android:id="@+id/stop_image"
-        android:layout_width="15dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.093"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         app:srcCompat="@drawable/stop" />
 
-    <ImageButton
-        android:id="@+id/minimize_button"
-        android:layout_width="100dp"
-        android:layout_height="match_parent"
-        app:srcCompat="@android:drawable/arrow_up_float" />
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="0.1"
+        android:layout_height="match_parent"/>
+
 </LinearLayout>
 </LinearLayout>

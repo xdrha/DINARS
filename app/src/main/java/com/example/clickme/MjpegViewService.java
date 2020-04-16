@@ -21,6 +21,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.dnn.Dnn;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -49,6 +50,7 @@ public class MjpegViewService extends Service {
     private int displayMode;
     public Boolean isMinimized = false;
     public Boolean isPaused = false;
+    public Dnn dnn;
 
 
 
@@ -250,35 +252,37 @@ public class MjpegViewService extends Service {
                                 try {
 
                                     bm = mIn.readMjpegFrame();
-                                    //
-                                    //TODO: tu sa bude diat rozpoznavanie veci atd.
-                                    //
-                                    Utils.bitmapToMat(bm,mat);
-                                    mat = recognize(mat);
-                                    Utils.matToBitmap(mat, bm);
+                                    if(bm != null) {
+                                        //
+                                        //TODO: tu sa bude diat rozpoznavanie veci atd.
+                                        //
+                                        Utils.bitmapToMat(bm, mat);
+                                        mat = recognize(mat);
+                                        Utils.matToBitmap(mat, bm);
 
-                                    if (!isMinimized && c != null) {
-                                        destRect = destRect(bm.getWidth(), bm.getHeight());
-                                        c.drawColor(Color.BLACK);
-                                        c.drawBitmap(bm, null, destRect, p);
-                                        if (showFps) {
-                                            p.setXfermode(mode);
-                                            if (ovl != null) {
-                                                height = ((ovlPos & 1) == 1) ? destRect.top : destRect.bottom - ovl.getHeight();
-                                                width = ((ovlPos & 8) == 8) ? destRect.left : destRect.right - ovl.getWidth();
-                                                c.drawBitmap(ovl, width, height, null);
-                                            }
-                                            p.setXfermode(null);
-                                            frameCounter++;
-                                            if ((System.currentTimeMillis() - start) >= 1000) {
-                                                fps = String.valueOf(frameCounter) + " fps";
-                                                frameCounter = 0;
-                                                start = System.currentTimeMillis();
-                                                ovl = makeFpsOverlay(overlayPaint, fps);
+                                        if (!isMinimized && c != null) {
+                                            destRect = destRect(bm.getWidth(), bm.getHeight());
+                                            c.drawColor(Color.BLACK);
+                                            c.drawBitmap(bm, null, destRect, p);
+                                            if (showFps) {
+                                                p.setXfermode(mode);
+                                                if (ovl != null) {
+                                                    height = ((ovlPos & 1) == 1) ? destRect.top : destRect.bottom - ovl.getHeight();
+                                                    width = ((ovlPos & 8) == 8) ? destRect.left : destRect.right - ovl.getWidth();
+                                                    c.drawBitmap(ovl, width, height, null);
+                                                }
+                                                p.setXfermode(null);
+                                                frameCounter++;
+                                                if ((System.currentTimeMillis() - start) >= 1000) {
+                                                    fps = String.valueOf(frameCounter) + " fps";
+                                                    frameCounter = 0;
+                                                    start = System.currentTimeMillis();
+                                                    ovl = makeFpsOverlay(overlayPaint, fps);
+                                                }
                                             }
                                         }
                                     }
-                                } catch (IOException e) {
+                                } catch (Exception e) {
                                     e.getStackTrace();
                                     //Log.d(TAG, "catch IOException hit in run", e);
                                 }
@@ -296,8 +300,11 @@ public class MjpegViewService extends Service {
                 }
             }
         };
-        System.out.print("/////////////////////////////////////// POST DELAYED 100");
         mHandler.postDelayed(runnable, 10);
+    }
+
+    public void stop(){
+        stopSelf();
     }
 
     @Override

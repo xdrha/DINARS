@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -21,23 +20,19 @@ public class MainActivity extends AppCompatActivity {
     {
         super.onResume();
         overridePendingTransition(R.anim.slide_from_top,R.anim.slide_in_top);
-
-        Toast.makeText(this, "RESUME DONE", Toast.LENGTH_SHORT).show();
-
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
+        System.out.println("////////////////////////// MAIN RESUME DONE");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Toast.makeText(this, "DESTROY DONE", Toast.LENGTH_SHORT).show();
+        System.out.println("////////////////////////// MAIN DESTROY DONE");
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Toast.makeText(this, "STOP DONE", Toast.LENGTH_SHORT).show();
+        System.out.println("////////////////////////// MAIN STOP DONE");
     }
 
     @Override

@@ -47,6 +47,10 @@ public class VideoViewFragment extends Fragment {
     private VideoViewFragmentViewModel VVFVM;
     private MjpegViewService MVS;
     private MjpegInputStream result;
+    private Boolean accidentallyMinimized = true;
+    private Intent serviceIntent1;
+    private Intent serviceIntent2;
+    private Boolean stopped = false;
 
     @Nullable
     @Override
@@ -59,8 +63,8 @@ public class VideoViewFragment extends Fragment {
         final TextView distraction_value = view.findViewById(R.id.distraction_value);
         final Button capture_button = view.findViewById(R.id.capture_button);
         final Button statistics_button = view.findViewById(R.id.statistics_button);
+        final Button minimize_button = view.findViewById(R.id.minimize_button);
         final ImageButton break_button = view.findViewById(R.id.break_button);
-        final ImageButton minimize_button = view.findViewById(R.id.minimize_button);
         final ImageView stop_image = view.findViewById(R.id.stop_image);
         final ImageView warning_image = view.findViewById(R.id.warning_image);
         final LinearLayout lll = view.findViewById(R.id.lll);
@@ -125,11 +129,10 @@ public class VideoViewFragment extends Fragment {
         minimize_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mv.minimized = true;
-                MAVM.setIsUpdating(true);
+                accidentallyMinimized = false;
+                minimize();
                 getActivity().moveTaskToBack(false);
                 getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
-                MAS.resumeInterface();
             }
         });
 
@@ -139,6 +142,9 @@ public class VideoViewFragment extends Fragment {
 
                 System.out.println("mv height " + mv.getHeight());
                 System.out.println("mv width " + mv.getWidth());
+
+                System.out.println("lll height " + lll.getHeight());
+                System.out.println("lll width " + lll.getWidth());
 
                 System.out.println("distraction_label height " + distraction_label.getHeight());
                 System.out.println("distraction_label textsize " + distraction_label.getWidth());
@@ -199,18 +205,36 @@ public class VideoViewFragment extends Fragment {
                 final Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
-                        if(aBoolean){
 
-                            System.out.println("////////////////////// CHECK");
-                            if(MAS.maximize){
-                                //vypni service, zapni main
-                                System.out.println("////////////////////// TOTO  SA VYKONA");
-                                MAS.maximize = false;
-                                handler.removeCallbacks(this);
-                                moveMainActivityToFront();
-                            }
-                            else{
-                                handler.postDelayed(this, 200);
+                        if(stopped){
+                            handler.removeCallbacks(this);
+                        }
+                        else {
+
+                            if (aBoolean) {
+                                if (MAS.hiden) {
+                                    //vypni service, zapni main
+                                    moveMainActivityToFront();
+                                    handler.removeCallbacks(this);
+                                } else {
+                                    handler.postDelayed(this, 200);
+                                }
+
+                            } else {
+                                try {
+                                    if (!getActivity().getWindow().getDecorView().getRootView().isShown()) {
+                                        if (accidentallyMinimized) {
+                                            handler.removeCallbacks(this);
+                                            minimize();
+                                        }
+                                    } else {
+                                        if (!mv.minimized)
+                                            handler.postDelayed(this, 200);
+                                    }
+                                } catch (NullPointerException e) {
+                                    e.printStackTrace();
+                                }
+
                             }
                         }
                     }
@@ -221,54 +245,75 @@ public class VideoViewFragment extends Fragment {
 
         startService1();
         startService2();
+        MAVM.setIsUpdating(false);
 
         return view;
+    }
 
+    public void minimize(){
+        System.out.print("//////////////////////////////////// MINIMALIZUJEM");
+        mv.minimized = true;
+        MAVM.setIsUpdating(true);
+        MAS.resumeInterface();
     }
 
     public void moveMainActivityToFront(){
-        Toast.makeText(getContext(), "MAKING MOVING MAIN ACTIVITY TO FRONT", Toast.LENGTH_SHORT).show();
         Intent mainActivity = new Intent(getActivity(), MainActivity.class);
         mainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startActivity(mainActivity);
+        mv.minimized = false;
+        MAVM.setIsUpdating(false);
     }
 
     public void onPause(){
         super.onPause();
-        //mv.stopPlayback();
-        System.out.println("////////////////////////////////// PAUSOL SOM TO");
+        System.out.println("////////////////////////// VVF PAUSE DONE");
         MVS.isMinimized = true;
     }
 
     public void onResume(){
+
+        System.out.println("////////////////////////// VVF RESUME DONE");
         super.onResume();
+        accidentallyMinimized = true;
         if(MVS != null) {
             MVS.isMinimized = false;
         }
+        if(MAS != null && !MAS.hiden){
+            MAS.hideTopPanel();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        stopped = true;
+        System.out.println("////////////////////////// VVF DESTROY DONE");
+        MVS.mRun = false;
+        getActivity().unbindService(VVFVM.getServiceConnection());
+        getActivity().unbindService(MAVM.getServiceConnection());
+        getActivity().finishAffinity();
+        System.exit(0);
+        super.onDestroy();
+    }
+
+    @Override
+    public void onStop() {
+        getActivity().moveTaskToBack(false);
+        getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
+        System.out.println("////////////////////////// VVF STOP DONE");
+        super.onStop();
     }
 
     public void startService1(){
-        Intent serviceIntent = new Intent(getActivity(), MinimizedActivityService.class);
-        getActivity().startService(serviceIntent);
-
-        bindService1();
-    }
-
-    public void bindService1(){
-        Intent serviceIntent = new Intent(getActivity(), MinimizedActivityService.class);
-        getActivity().bindService(serviceIntent, MAVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
+        serviceIntent1 = new Intent(getActivity(), MinimizedActivityService.class);
+        getActivity().startService(serviceIntent1);
+        getActivity().bindService(serviceIntent1, MAVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
     }
 
     public void startService2(){
-        Intent serviceIntent = new Intent(getActivity(), MjpegViewService.class);
-        getActivity().startService(serviceIntent);
-
-        bindService2();
-    }
-
-    public void bindService2(){
-        Intent serviceIntent = new Intent(getActivity(), MjpegViewService.class);
-        getActivity().bindService(serviceIntent, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
+        serviceIntent2 = new Intent(getActivity(), MjpegViewService.class);
+        getActivity().startService(serviceIntent2);
+        getActivity().bindService(serviceIntent2, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
     }
 
     public class DoRead extends AsyncTask<String, Void, MjpegInputStream> {
@@ -276,7 +321,6 @@ public class VideoViewFragment extends Fragment {
         protected MjpegInputStream doInBackground(String... Url) {
             //TODO: if camera has authentication deal with it and don't just not work
 
-            System.out.println("////////////////////////////////////////////////// 1. Sending http request");
             try {
                 java.net.URL url = new URL(Url[0]); // here is your URL path
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -284,14 +328,12 @@ public class VideoViewFragment extends Fragment {
                 conn.setConnectTimeout(150);
                 int responseCode = conn.getResponseCode();
 
-                System.out.println("////////////////////////////////////////////////// 2. Request finished, status = " + responseCode);
                 if (responseCode == 401) {
                     return null;
                 }
                 return new MjpegInputStream(conn.getInputStream());
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("////////////////////////////////////////////////// Request failed-ClientProtocolException");
                 //Error connecting to camera
             }
             return null;
@@ -299,9 +341,7 @@ public class VideoViewFragment extends Fragment {
 
         protected void onPostExecute(MjpegInputStream res) {
 
-
             if (res != null) {
-                System.out.println("////////////////////////////////////////////////// OKEY HOTOVKA");
                 mv.mIn = res;
                 result = res;
                 VVFVM.setIsUpdating(true);
@@ -310,12 +350,10 @@ public class VideoViewFragment extends Fragment {
                     MVS.mIn = result;
                     mv.mRun = true;
                     MVS.mRun = true;
-                    System.out.println("////////////////////////////////////////////////// Input stream nie je null");
                     MVS.mSurfaceHolder = mv.holder;
-                    MVS.setSurfaceSize(803, 476);
+                    MVS.setSurfaceSize(788, 443);
                     MVS.startPretendLongRunningTask();
 
-                    System.out.println("////////////////////////////////////////////////// zacak konat");
                     MVS.setDisplayMode(MjpegView.SIZE_BEST_FIT);
 
                     MVS.showFps(true);
