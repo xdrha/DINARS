@@ -70,16 +70,16 @@ public class MjpegViewService extends Service {
     private int                    mDetectorType       = JAVA_DETECTOR;
     private String[]               mDetectorName;
 
-    private float                  mRelativeFaceSize   = 0.2f;
+    private float                  mRelativeFaceSize   = 0.1f;
     private int                    mAbsoluteFaceSize   = 0;
 
     public void initializeOpenCVDependencies() throws IOException{
 
         try {
             // load cascade file from application resources
-            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            InputStream is = getResources().openRawResource(R.raw.phone_cascade);
             File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-            mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            mCascadeFile = new File(cascadeDir, "phone_cascade.xml");
             FileOutputStream os = new FileOutputStream(mCascadeFile);
 
             byte[] buffer = new byte[4096];
@@ -197,34 +197,28 @@ public class MjpegViewService extends Service {
 
         mRgba = inputFrame;
         Imgproc.cvtColor(inputFrame, mGray, Imgproc.COLOR_RGB2GRAY);
-        //mGray = inputFrame.gray();
 
-        if (mAbsoluteFaceSize == 0) {
+        /*if (mAbsoluteFaceSize == 0) {
             int height = mGray.rows();
             if (Math.round(height * mRelativeFaceSize) > 0) {
                 mAbsoluteFaceSize = Math.round(height * mRelativeFaceSize);
             }
-            //mNativeDetector.setMinFaceSize(mAbsoluteFaceSize);
-        }
+        }*/
 
         MatOfRect faces = new MatOfRect();
 
         if (mDetectorType == JAVA_DETECTOR) {
             if (mJavaDetector != null)
-                mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-                        new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
+                mJavaDetector.detectMultiScale(mGray, faces, 2, 30, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 30 phone cascade)
+                        new Size(150, 150), new Size(500,500));
         }
-        /*else if (mDetectorType == NATIVE_DETECTOR) {
-            if (mNativeDetector != null)
-                mNativeDetector.detect(mGray, faces);
-        }*/
         else {
             System.out.println("Detection method is not selected!");
         }
 
         org.opencv.core.Rect[] facesArray = faces.toArray();
-        for (int i = 0; i < facesArray.length; i++)
-            Imgproc.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
+        //for (int i = 0; i < facesArray.length; i++) //toto mi robi dojebane veci, ale je to vtipne celkom
+            Imgproc.rectangle(mRgba, facesArray[0].tl(), facesArray[0].br(), FACE_RECT_COLOR, 3);
 
         return mRgba;
     }
