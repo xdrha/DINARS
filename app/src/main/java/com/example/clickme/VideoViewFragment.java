@@ -52,22 +52,33 @@ public class VideoViewFragment extends Fragment {
     private Intent serviceIntent2;
     private Boolean stopped = false;
 
+    public ProgressBar distraction_level_bar;
+    public TextView distraction_label;
+    public TextView distraction_value;
+    public Button capture_button;
+    public Button statistics_button;
+    public Button minimize_button;
+    public ImageButton break_button;
+    public ImageView stop_image;
+    public ImageView warning_image;
+    public LinearLayout lll;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_video_view, container, false);
         mv = view.findViewById(R.id.surface_view);
 
-        final ProgressBar distraction_level_bar = view.findViewById(R.id.distraction_level_bar);
-        final TextView distraction_label = view.findViewById(R.id.distraction_label);
-        final TextView distraction_value = view.findViewById(R.id.distraction_value);
-        final Button capture_button = view.findViewById(R.id.capture_button);
-        final Button statistics_button = view.findViewById(R.id.statistics_button);
-        final Button minimize_button = view.findViewById(R.id.minimize_button);
-        final ImageButton break_button = view.findViewById(R.id.break_button);
-        final ImageView stop_image = view.findViewById(R.id.stop_image);
-        final ImageView warning_image = view.findViewById(R.id.warning_image);
-        final LinearLayout lll = view.findViewById(R.id.lll);
+        distraction_level_bar = view.findViewById(R.id.distraction_level_bar);
+        distraction_label = view.findViewById(R.id.distraction_label);
+        distraction_value = view.findViewById(R.id.distraction_value);
+        capture_button = view.findViewById(R.id.capture_button);
+        statistics_button = view.findViewById(R.id.statistics_button);
+        minimize_button = view.findViewById(R.id.minimize_button);
+        break_button = view.findViewById(R.id.break_button);
+        stop_image = view.findViewById(R.id.stop_image);
+        warning_image = view.findViewById(R.id.warning_image);
+        lll = view.findViewById(R.id.lll);
 
         capture_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -173,13 +184,30 @@ public class VideoViewFragment extends Fragment {
             public void onChanged(@Nullable MjpegViewService.MyBinder myBinder) {
                 if(myBinder != null){
                     MVS = myBinder.getService();
-                    System.out.println("////////////////// NIE JE NULL DOPICEE");
                     new DoRead().execute(URL);
                 }
                 else{
                     MVS = null;
-                    System.out.println("////////////////// JE NULL DOPICEE");
                 }
+            }
+        });
+
+        VVFVM.getIsProgressUpdating().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable final Boolean aBoolean) {
+                final Handler handler = new Handler();
+                final Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if(MVS != null) {
+                            if (aBoolean) {
+                                setProgress(MVS.globalDistraction);
+                                handler.postDelayed(this, 100);
+                            }
+                        }
+                    }
+                };
+                handler.postDelayed(runnable, 100);
             }
         });
 
@@ -246,12 +274,18 @@ public class VideoViewFragment extends Fragment {
         startService1();
         startService2();
         MAVM.setIsUpdating(false);
+        VVFVM.setIsUpdating(true);
 
         return view;
     }
 
+    public void setProgress(int distraction){
+        distraction_level_bar.setMax(100);
+        distraction_level_bar.setProgress(distraction);
+        distraction_value.setText(String.valueOf(distraction / 10.0));
+    }
+
     public void minimize(){
-        System.out.print("//////////////////////////////////// MINIMALIZUJEM");
         mv.minimized = true;
         MAVM.setIsUpdating(true);
         MAS.resumeInterface();
@@ -267,13 +301,10 @@ public class VideoViewFragment extends Fragment {
 
     public void onPause(){
         super.onPause();
-        System.out.println("////////////////////////// VVF PAUSE DONE");
         MVS.isMinimized = true;
     }
 
     public void onResume(){
-
-        System.out.println("////////////////////////// VVF RESUME DONE");
         super.onResume();
         accidentallyMinimized = true;
         if(MVS != null) {
@@ -355,9 +386,6 @@ public class VideoViewFragment extends Fragment {
                     MVS.startPretendLongRunningTask();
 
                     MVS.setDisplayMode(MjpegView.SIZE_BEST_FIT);
-
-                    MVS.showFps(true);
-
                 }
 
 
