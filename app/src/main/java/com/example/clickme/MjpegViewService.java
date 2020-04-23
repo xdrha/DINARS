@@ -1,14 +1,14 @@
 package com.example.clickme;
 
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.os.Binder;
 import android.os.CountDownTimer;
@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.view.SurfaceHolder;
+import android.view.WindowManager;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -34,8 +35,6 @@ import java.io.InputStream;
 
 public class MjpegViewService extends Service {
     public SurfaceHolder mSurfaceHolder;
-    private long start;
-    private Bitmap ovl;
     private IBinder mBinder = new MjpegViewService.MyBinder();
     private Handler mHandler;
     public MjpegInputStream mIn = null;
@@ -48,17 +47,24 @@ public class MjpegViewService extends Service {
     public Boolean isPaused = false;
     public CountDownTimer eyesClosedTimer = null;
 
+    //TODO calibration variables
+    public int calibrationMode = 0;
+    public Boolean faceFound = false;
+    public Boolean eyesFound = false;
+    public Boolean wearingGlasses = false;
+    public int progressRectangle = 0;
 
 
     //TODO OpenCV variables
-    Mat mat = new Mat();
+
+    private Mat mRgba;
+    private Mat mGray;
+    private Mat mat;
 
     private static final Scalar FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);
     private static final Scalar OBJECT_RECT_COLOR = new Scalar(255, 0, 0, 255);
     private static final Scalar EYE_RECT_COLOR = new Scalar(0, 0, 255, 255);
 
-    private Mat mRgba;
-    private Mat mGray;
     private File phoneCascadeFile;
     private File faceCascadeFile;
     private File eyeCascadeFile;
@@ -93,7 +99,6 @@ public class MjpegViewService extends Service {
     public void initializeOpenCVDependencies(){
 
         try {
-
             // load cascade file from application resources
 
             InputStream isPhone = getResources().openRawResource(R.raw.haarcascade_phone);
@@ -138,7 +143,6 @@ public class MjpegViewService extends Service {
         mGray = new Mat();
         mRgba = new Mat();
     }
-
 
     public void setDisplayMode(int s) {
         displayMode = s;
@@ -242,39 +246,48 @@ public class MjpegViewService extends Service {
         return 1;
     }
 
-    public Mat recognize(Mat inputFrame) {
+    public void drawCalibrationMode(){
+        Mat roi = mRgba.clone();
+        double opacity = 0.7;
+        Imgproc.rectangle(roi, new Point(0,0), new Point(420, roi.height()), new Scalar(0,0,0),-1);
+        Imgproc.rectangle(roi, new Point(860,0), new Point(roi.width(), roi.height()), new Scalar(0,0,0),-1);
+        Imgproc.rectangle(roi, new Point(420,0), new Point(860, 30), new Scalar(0,0,0),-1);
+        Imgproc.rectangle(roi, new Point(420,400), new Point(860, roi.height()), new Scalar(0,0,0),-1);
+        Core.addWeighted(roi,opacity, mRgba, 1-opacity,0, mRgba);
 
-        mRgba = inputFrame;
-        Imgproc.cvtColor(inputFrame, mGray, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.rectangle(mRgba, new Point(424,34), new Point(856, 396), new Scalar(255,255,0,255),5);
+    }
 
-        MatOfRect phones = new MatOfRect();
+    public void findFaceAndEyes(){
+
         MatOfRect faces = new MatOfRect();
         MatOfRect eyes = new MatOfRect();
-        MatOfRect coffees = new MatOfRect();
-
-        //region face detection region
 
         if (faceDetector != null)
-            faceDetector.detectMultiScale(mGray, faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
+            faceDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(420, 30, 440, 370)), faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
                     new Size(100, 100), new Size(900, 900));
 
-        org.opencv.core.Rect[] facesArray = null;
+        org.opencv.core.Rect[] facesArray;
 
-        if(!faces.empty()) {
+        if (!faces.empty()) {
 
             facesArray = faces.toArray();
-            if (facesArray.length != 0)
-                Imgproc.rectangle(mRgba, facesArray[0].tl(), facesArray[0].br(), FACE_RECT_COLOR, 3);
+            if (facesArray.length != 0) {
+                facesArray[0].x += 420;
+                facesArray[0].y += 30;
+                Imgproc.rectangle(mRgba, new Point(facesArray[0].x, facesArray[0].y),
+                        new Point(facesArray[0].x + facesArray[0].width, facesArray[0].y + facesArray[0].height),
+                        new Scalar(255,255,0), 3);
 
+                if (!faceFound) faceFound = true;
+            }
 
             Mat faceMat = mGray.submat(facesArray[0]);
             if (eyeDetector != null)
                 eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 phone cascade)
-                        new Size(25, 25), new Size(100, 100));
+                        new Size(10, 10), new Size(100, 100));
 
             if (!eyes.empty()) {
-
-                reStartEyesClosedTimer();
 
                 org.opencv.core.Rect[] eyesArray = eyes.toArray();
 
@@ -293,63 +306,244 @@ public class MjpegViewService extends Service {
                             }
                             if (temp) continue;
                         }
-                        Imgproc.rectangle(mRgba, eyesArray[i].tl(), eyesArray[i].br(), EYE_RECT_COLOR, 3);
+                        Imgproc.rectangle(mRgba, eyesArray[i].tl(), eyesArray[i].br(), new Scalar(255,255,0), 3);
+                        if (!eyesFound) eyesFound = true;
                     }
                 }
             }
         }
-        else{
-            reStartEyesClosedTimer(); // ked nenajde hlavu tak nemozem povedat ze zaspal
+    }
+
+    public Mat recognize(Mat inputFrame) {
+
+        mRgba = inputFrame;
+        Imgproc.cvtColor(mRgba, mGray, Imgproc.COLOR_RGB2GRAY);
+
+        //TODO calibration mode
+
+        if (calibrationMode == 1) {
+            faceFound = false;
+            eyesFound = false;
+            wearingGlasses = false;
+
+            drawCalibrationMode();
+
+            Imgproc.putText(mRgba, "1. Sit down normally", new Point(10, 50), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "2. Move the camera", new Point(10, 150), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "  ( your head should", new Point(10, 200), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "  be in the middle of", new Point(10, 250), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "  the yellow frame )", new Point(10, 300), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "3. Press CALIBRATION", new Point(10, 400), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
+            Imgproc.putText(mRgba, "   button again", new Point(10, 450), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 3);
         }
+        else {
+            if (calibrationMode == 2 || calibrationMode == 3) {
+                 drawCalibrationMode();
+                Imgproc.putText(mRgba, "Calibration progress", new Point(420, 450), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 2);
+                Imgproc.rectangle(mRgba, new Point(420, 460), new Point(860,480), new Scalar(200,200,200), -1);
 
-        //endregion
+                if (calibrationMode != 3) {
+                    progressRectangle = 0;
+                    calibrationMode = 3;
+                }
+                if (calibrationMode == 3) {
 
-        //region object detection region
+                    if (progressRectangle >= 440) { ////skoncil cas na kalibraciu
 
-        if (phoneDetector != null)
-            phoneDetector.detectMultiScale(mGray, phones, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 phone cascade)
-                    new Size(100, 100), new Size(500, 500));
+                        isPaused = true;
+                        if (faceFound) {
+                            //ma okuliare???
 
-        if(coffeeDetector != null)
-            coffeeDetector.detectMultiScale(mGray, coffees, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 coffee cascade)
-                    new Size(100, 100), new Size(500, 500));
+                            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                            builder.setMessage("Do you wear glasses?").setTitle("Eyes not found!");
+
+                            builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    // User clicked OK button
+                                    wearingGlasses = true;
+                                    isPaused = false;
+                                    calibrationMode = 0;
+                                }
+                            });
+                            builder.setNegativeButton("no (restart calibration)", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    calibrationMode = 1;
+                                    isPaused = false;
+                                    progressRectangle = 0;
+                                    Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
+                                }
+                            });
+
+                            AlertDialog dialog = builder.create();
+                            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                            dialog.show();
+                        } else {
+
+                            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                            builder.setMessage("Calibration not successful!");
+
+                            builder.setPositiveButton("Restart", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    calibrationMode = 1;
+                                    isPaused = false;
+                                    progressRectangle = 0;
+                                    Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
+                                }
+                            });
+
+                            AlertDialog dialog = builder.create();
+                            dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                            dialog.show();
+                        }
+                    } else {
+
+                        progressRectangle += 20;
+
+                        findFaceAndEyes();
+
+                        if (faceFound) {
+                            Imgproc.putText(mRgba, ">> Face found", new Point(880, 50), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255, 255, 0), 2);
+
+                            if (eyesFound) {
+                                Imgproc.putText(mRgba, ">> Eyes found", new Point(880, 100), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255, 255, 0), 2);
+                                progressRectangle = 440;
+                                calibrationMode = 0;
+                                isPaused = true;
+                                Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                                builder.setMessage("Calibration done!");
+
+                                builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        calibrationMode = 0;
+                                        isPaused = false;
+                                    }
+                                });
+
+                                AlertDialog dialog = builder.create();
+                                dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                                dialog.show();
+                            }
+                        }
+
+                        Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
+                        return mRgba;
+                    }
+                }
+
+            } else {
+                if (calibrationMode == 0) {
+
+                    MatOfRect phones = new MatOfRect();
+                    MatOfRect faces = new MatOfRect();
+                    MatOfRect eyes = new MatOfRect();
+                    MatOfRect coffees = new MatOfRect();
+
+                    //region face detection region
+
+                    if (faceDetector != null)
+                        faceDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(420, 30, 440, 370)), faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
+                                new Size(100, 100), new Size(900, 900));
+
+                    org.opencv.core.Rect[] facesArray;
+
+                    if (!faces.empty()) {
+
+                        facesArray = faces.toArray();
+                        if (facesArray.length != 0) {
+                            facesArray[0].x += 420;
+                            facesArray[0].y += 30;
+                            Imgproc.rectangle(mRgba, new Point(facesArray[0].x, facesArray[0].y),
+                                    new Point(facesArray[0].x + facesArray[0].width, facesArray[0].y + facesArray[0].height),
+                                    FACE_RECT_COLOR, 3);
+                        }
+
+                        Mat faceMat = mGray.submat(facesArray[0]);
+                        if (eyeDetector != null)
+                            eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 phone cascade)
+                                    new Size(10, 10), new Size(100, 100));
+
+                        if (!eyes.empty()) {
+
+                            reStartEyesClosedTimer();
+
+                            org.opencv.core.Rect[] eyesArray = eyes.toArray();
+
+                            if (eyesArray.length != 0) {
+                                for (int i = 0; i < eyesArray.length; i++) {
+
+                                    eyesArray[i].x += facesArray[0].x;
+                                    eyesArray[i].y += facesArray[0].y;
+                                    Boolean temp = false;
+                                    if (i > 0) {
+                                        for (int j = 0; j < i; j++) {
+                                            if (eyesArray[i].x <= eyesArray[j].x + eyesArray[j].width && eyesArray[j].x <= eyesArray[i].x + eyesArray[i].width)
+                                                temp = true;
+                                            if (eyesArray[j].x <= eyesArray[i].x + eyesArray[i].width && eyesArray[i].x <= eyesArray[j].x + eyesArray[j].width)
+                                                temp = true;
+                                        }
+                                        if (temp) continue;
+                                    }
+                                    Imgproc.rectangle(mRgba, eyesArray[i].tl(), eyesArray[i].br(), EYE_RECT_COLOR, 3);
+                                }
+                            }
+                        }
+                    } else {
+                        reStartEyesClosedTimer(); // ked nenajde hlavu tak nemozem povedat ze zaspal
+                    }
+
+                    //endregion
+
+                    //region object detection region
+
+                    if (phoneDetector != null)
+                        phoneDetector.detectMultiScale(mGray, phones, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 phone cascade)
+                                new Size(100, 100), new Size(500, 500));
+
+                    if (coffeeDetector != null)
+                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 coffee cascade)
+                                new Size(100, 100), new Size(500, 500));
 
 
-        if(!phones.empty()) decisionMatrix[2][0] = 1;
-        else decisionMatrix[2][0] = 0;
+                    if (!phones.empty()) decisionMatrix[2][0] = 1;
+                    else decisionMatrix[2][0] = 0;
 
-        if(!coffees.empty()) decisionMatrix[2][1] = 1;
-        else decisionMatrix[2][1] = 0;
+                    if (!coffees.empty()) decisionMatrix[2][1] = 1;
+                    else decisionMatrix[2][1] = 0;
 
-        int decision = makeDecision();
 
-        if(decision == 1){
-            coffeeDistraction = 0;
-            phoneDistraction = 50;
+                    int decision = makeDecision();
 
-            org.opencv.core.Rect[] phonesArray = phones.toArray();
-            Imgproc.rectangle(mRgba, phonesArray[0].tl(), phonesArray[0].br(), OBJECT_RECT_COLOR, 3);
-            Imgproc.putText(mRgba, "phone", new Point(phonesArray[0].x, phonesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                    if (decision == 1) {
+                        coffeeDistraction = 0;
+                        phoneDistraction = 50;
 
-        }
-        else{
-            if(decision == 2){
-                phoneDistraction = 0;
-                coffeeDistraction = 50;
+                        org.opencv.core.Rect[] phonesArray = phones.toArray();
+                        Imgproc.rectangle(mRgba, phonesArray[0].tl(), phonesArray[0].br(), OBJECT_RECT_COLOR, 3);
+                        Imgproc.putText(mRgba, "phone", new Point(phonesArray[0].x, phonesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                    } else {
+                        if (decision == 2) {
+                            phoneDistraction = 0;
+                            coffeeDistraction = 50;
 
-                org.opencv.core.Rect[] coffeesArray = coffees.toArray();
-                Imgproc.rectangle(mRgba, coffeesArray[0].tl(), coffeesArray[0].br(), OBJECT_RECT_COLOR, 3);
-                Imgproc.putText(mRgba, "coffee", new Point(coffeesArray[0].x, coffeesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                            org.opencv.core.Rect[] coffeesArray = coffees.toArray();
+                            Imgproc.rectangle(mRgba, coffeesArray[0].tl(), coffeesArray[0].br(), OBJECT_RECT_COLOR, 3);
+                            Imgproc.putText(mRgba, "coffee", new Point(coffeesArray[0].x, coffeesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                        } else {
+                            if (phoneDistraction > 0) phoneDistraction -= 5;
+                            if (coffeeDistraction > 0) coffeeDistraction -= 5;
+                        }
+                    }
+
+                    //endregion
+                    return mRgba;
+                }
             }
-            else{
-                if(phoneDistraction > 0) phoneDistraction -= 5;
-                if(coffeeDistraction > 0) coffeeDistraction -= 5;
-            }
         }
-
-        //endregion
 
         return mRgba;
+
     }
 
 
@@ -358,26 +552,24 @@ public class MjpegViewService extends Service {
             @Override
             public void run() {
                 surfaceDone = true;
-                start = System.currentTimeMillis();
-                PorterDuffXfermode mode = new PorterDuffXfermode(PorterDuff.Mode.DST_OVER);
                 Bitmap bm;
-                int width;
-                int height;
                 Rect destRect;
                 Canvas c = null;
                 Paint p = new Paint();
                 if (mRun) {
-                    if (surfaceDone) {
+                    if (surfaceDone ) {
                         try {
-                            c = mSurfaceHolder.lockCanvas();
+
                             synchronized (mSurfaceHolder) {
                                 try {
 
                                     bm = mIn.readMjpegFrame();
-                                    if(bm != null) {
+                                    if(bm != null && !isPaused) {
+                                        c = mSurfaceHolder.lockCanvas();
                                         //
                                         //TODO: tu sa bude diat rozpoznavanie veci atd.
                                         //
+                                        mat = new Mat();
                                         Utils.bitmapToMat(bm, mat);
                                         mat = recognize(mat);
                                         Utils.matToBitmap(mat, bm);
@@ -388,6 +580,8 @@ public class MjpegViewService extends Service {
                                             c.drawBitmap(bm, null, destRect, p);
                                         }
                                     }
+                                    else
+                                        c = null;
                                 } catch (Exception e) {
                                     e.getStackTrace();
                                 }
@@ -398,14 +592,14 @@ public class MjpegViewService extends Service {
                             }
                         }
                     }
-                    mHandler.postDelayed(this, 10);
+                    mHandler.postDelayed(this, 100);
                 }
                 else{
                     mHandler.removeCallbacks(this);
                 }
             }
         };
-        mHandler.postDelayed(runnable, 10);
+        mHandler.postDelayed(runnable, 100);
     }
 
     public void stop(){

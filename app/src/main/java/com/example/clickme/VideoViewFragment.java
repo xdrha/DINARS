@@ -18,18 +18,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -84,7 +74,7 @@ public class VideoViewFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
-                queue = Volley.newRequestQueue(getActivity());
+                /*queue = Volley.newRequestQueue(getActivity());
 
                 StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, URL_ROOT + "send_something",
                         new Response.Listener<String>() {
@@ -119,7 +109,13 @@ public class VideoViewFragment extends Fragment {
                         DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                         DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
-                queue.add(checkAvailabilityRequest);
+                queue.add(checkAvailabilityRequest);*/
+               if(MVS != null){
+                   if(MVS.calibrationMode == 0) MVS.calibrationMode = 1;
+                   else
+                       if(MVS.calibrationMode == 1) MVS.calibrationMode = 2;
+               }
+
             }
 
         });
