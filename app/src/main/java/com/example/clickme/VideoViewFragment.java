@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -45,7 +46,7 @@ public class VideoViewFragment extends Fragment {
     public ProgressBar distraction_level_bar;
     public TextView distraction_label;
     public TextView distraction_value;
-    public Button capture_button;
+    public Button calibration_button;
     public Button statistics_button;
     public Button minimize_button;
     public ImageButton break_button;
@@ -62,7 +63,7 @@ public class VideoViewFragment extends Fragment {
         distraction_level_bar = view.findViewById(R.id.distraction_level_bar);
         distraction_label = view.findViewById(R.id.distraction_label);
         distraction_value = view.findViewById(R.id.distraction_value);
-        capture_button = view.findViewById(R.id.capture_button);
+        calibration_button = view.findViewById(R.id.calibration_button);
         statistics_button = view.findViewById(R.id.statistics_button);
         minimize_button = view.findViewById(R.id.minimize_button);
         break_button = view.findViewById(R.id.break_button);
@@ -70,7 +71,12 @@ public class VideoViewFragment extends Fragment {
         warning_image = view.findViewById(R.id.warning_image);
         lll = view.findViewById(R.id.lll);
 
-        capture_button.setOnClickListener(new View.OnClickListener() {
+        distraction_label.setTextColor(Color.GREEN);
+        distraction_value.setTextColor(Color.GREEN);
+        distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
+        statistics_button.setEnabled(false);
+
+        calibration_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -111,9 +117,16 @@ public class VideoViewFragment extends Fragment {
 
                 queue.add(checkAvailabilityRequest);*/
                if(MVS != null){
+
+                   calibration_button.setText("calibration");
                    if(MVS.calibrationMode == 0) MVS.calibrationMode = 1;
                    else
                        if(MVS.calibrationMode == 1) MVS.calibrationMode = 2;
+
+                   break_button.setEnabled(false);
+                   break_button.setImageResource(R.drawable.coffee_disabled);
+                   minimize_button.setEnabled(false);
+                   statistics_button.setEnabled(false);
                }
 
             }
@@ -125,9 +138,13 @@ public class VideoViewFragment extends Fragment {
             public void onClick(View v) {
                 if(MVS.isPaused) {
                     MVS.isPaused = false;
+                    minimize_button.setEnabled(true);
+                    statistics_button.setEnabled(false);
                 }
                 else{
                     MVS.isPaused = true;
+                    minimize_button.setEnabled(false);
+                    statistics_button.setEnabled(true);
                 }
             }
         });
@@ -197,7 +214,16 @@ public class VideoViewFragment extends Fragment {
                     public void run() {
                         if(MVS != null) {
                             if (aBoolean) {
+
+                                if(MVS.calibrationMode == 0)
+                                    if (!break_button.isEnabled()){ //ak dokoncilo kalibraciu
+                                    if(!MVS.isPaused) minimize_button.setEnabled(true);
+                                    break_button.setEnabled(true);
+                                    break_button.setImageResource(R.drawable.coffee);
+                                    if(MVS.isPaused) statistics_button.setEnabled(true);
+                                }
                                 setProgress(MVS.globalDistraction);
+
                                 handler.postDelayed(this, 100);
                             }
                         }
@@ -276,9 +302,66 @@ public class VideoViewFragment extends Fragment {
     }
 
     public void setProgress(int distraction){
-        distraction_level_bar.setMax(100);
-        distraction_level_bar.setProgress(distraction);
-        distraction_value.setText(String.valueOf(distraction / 10.0));
+
+        if(distraction > 100) distraction = 100;
+
+        if(mv.minimized){
+
+            MAS.distraction_level_bar.setMax(100);
+            MAS.distraction_level_bar.setProgress(distraction);
+            MAS.distraction_value.setText(String.valueOf(distraction / 10.0));
+
+            if(distraction >= 50 && distraction < 80){
+                MAS.warning_image.setVisibility(View.VISIBLE);
+                MAS.stop_image.setVisibility(View.INVISIBLE);
+                MAS.distraction_label.setTextColor(Color.YELLOW);
+                MAS.distraction_value.setTextColor(Color.YELLOW);
+                MAS.distraction_level_bar.getProgressDrawable().setColorFilter( Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
+            }
+            else{
+                if(distraction >= 80){
+                    MAS.warning_image.setVisibility(View.VISIBLE);
+                    MAS.stop_image.setVisibility(View.VISIBLE);
+                    MAS.distraction_label.setTextColor(Color.RED);
+                    MAS.distraction_value.setTextColor(Color.RED);
+                    MAS.distraction_level_bar.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+                else{ // <50
+                    MAS.warning_image.setVisibility(View.INVISIBLE);
+                    MAS.stop_image.setVisibility(View.INVISIBLE);
+                    MAS.distraction_label.setTextColor(Color.GREEN);
+                    MAS.distraction_value.setTextColor(Color.GREEN);
+                    MAS.distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+            }
+        }
+        else {
+            distraction_level_bar.setMax(100);
+            distraction_level_bar.setProgress(distraction);
+            distraction_value.setText(String.valueOf(distraction / 10.0));
+
+            if (distraction >= 50 && distraction < 80) {
+                warning_image.setVisibility(View.VISIBLE);
+                stop_image.setVisibility(View.INVISIBLE);
+                distraction_label.setTextColor(Color.YELLOW);
+                distraction_value.setTextColor(Color.YELLOW);
+                distraction_level_bar.getProgressDrawable().setColorFilter(Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
+            } else {
+                if (distraction >= 80) {
+                    warning_image.setVisibility(View.VISIBLE);
+                    stop_image.setVisibility(View.VISIBLE);
+                    distraction_label.setTextColor(Color.RED);
+                    distraction_value.setTextColor(Color.RED);
+                    distraction_level_bar.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
+                } else { // <50
+                    warning_image.setVisibility(View.INVISIBLE);
+                    stop_image.setVisibility(View.INVISIBLE);
+                    distraction_label.setTextColor(Color.GREEN);
+                    distraction_value.setTextColor(Color.GREEN);
+                    distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+            }
+        }
     }
 
     public void minimize(){

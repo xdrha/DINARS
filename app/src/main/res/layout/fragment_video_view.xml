@@ -85,12 +85,12 @@ android:orientation="vertical">
             android:background="#424242" />
 
         <Button
-            android:id="@+id/capture_button"
+            android:id="@+id/calibration_button"
             android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="0.1733"
-            android:text="calibration"
+            android:text="*  calibration  "
             android:textSize="18sp" />
 
     </LinearLayout>

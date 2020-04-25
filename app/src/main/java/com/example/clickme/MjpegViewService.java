@@ -11,7 +11,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Binder;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -45,7 +44,8 @@ public class MjpegViewService extends Service {
     private int displayMode;
     public Boolean isMinimized = false;
     public Boolean isPaused = false;
-    public CountDownTimer eyesClosedTimer = null;
+    public Boolean afterCalibrationBreak = false;
+    public Boolean faceNotFound = false;
 
     //TODO calibration variables
     public int calibrationMode = 0;
@@ -54,9 +54,7 @@ public class MjpegViewService extends Service {
     public Boolean wearingGlasses = false;
     public int progressRectangle = 0;
 
-
     //TODO OpenCV variables
-
     private Mat mRgba;
     private Mat mGray;
     private Mat mat;
@@ -78,9 +76,11 @@ public class MjpegViewService extends Service {
     public int globalDistraction = 0;
     public int phoneDistraction = 0;
     public int coffeeDistraction = 0;
-    public Boolean phoneUsage = false;
-    public double tick = 1;
+    public int eyesClosedFactor = 0;
+    public int headTiltedFactor = 0;
     public int decisionMatrix[][] = {{0,0},{0,0},{0,0}};
+    public int eyesClosedArray[] = {0,0,0,0,0,0,0,0,0,0};
+    public int headTiltedArray[] = {0,0,0,0,0,0,0,0,0,0};
 
     private CascadeClassifier newCascadeClassifier(File mCascadeFile, InputStream is) throws IOException{
         FileOutputStream os = new FileOutputStream(mCascadeFile);
@@ -142,6 +142,7 @@ public class MjpegViewService extends Service {
 
         mGray = new Mat();
         mRgba = new Mat();
+        mat = new Mat();
     }
 
     public void setDisplayMode(int s) {
@@ -159,34 +160,6 @@ public class MjpegViewService extends Service {
         super.onCreate();
         mHandler = new Handler();
         initializeOpenCVDependencies();
-    }
-
-    public void reStartEyesClosedTimer(){
-        if(eyesClosedTimer != null) {
-            eyesClosedTimer.cancel();
-        }
-        globalDistraction /= tick;
-        tick = 1;
-        //ak po 2 sekundach najde tvar ale nenajde aspon jedno oko, tak ma asi zavrete oci, alebo cumi do mobilu
-        eyesClosedTimer = new CountDownTimer(2000, 100) {
-
-            @Override
-            public void onTick(long l) {
-                globalDistraction = (int)((phoneDistraction + coffeeDistraction) * tick);
-                tick += 0.1;
-                if(globalDistraction >= 100){
-                    globalDistraction = 100;
-                    cancel();
-                }
-
-            }
-
-            @Override
-            public void onFinish() {
-                //vodic zaspal
-                System.err.println("\n//////////////// VODIC ZASPAL\n");
-            }
-        }.start();
     }
 
     public class MyBinder extends Binder {
@@ -232,6 +205,7 @@ public class MjpegViewService extends Service {
     }
 
     public int makeDecision(){
+
         int countPhones = 0;
         int countCoffees = 0;
 
@@ -240,10 +214,18 @@ public class MjpegViewService extends Service {
             countCoffees += decisionMatrix[i][1];
         }
 
-        if(countPhones == 0 && countCoffees == 0) return 0;
-        if(countCoffees > countPhones) return 2;
+        decisionMatrix[0][0] = decisionMatrix[1][0];
+        decisionMatrix[1][0] = decisionMatrix[2][0];
+        decisionMatrix[0][1] = decisionMatrix[1][1];
+        decisionMatrix[1][1] = decisionMatrix[2][1];
 
-        return 1;
+        if(decisionMatrix[2][0] == 0 && decisionMatrix[2][1] == 0) return 0; //ked nic nepride nema co vykreslit :(
+        if(countPhones == 0 && countCoffees == 0) return 0;
+        if(countCoffees > countPhones && decisionMatrix[1][1] == 1) return 2;
+        else
+            if(decisionMatrix[1][0] == 1) return 1;
+
+        return 0;
     }
 
     public void drawCalibrationMode(){
@@ -314,6 +296,25 @@ public class MjpegViewService extends Service {
         }
     }
 
+    public int computeDrowsinessFactor(int[] array){
+        //ak prva polka je == 0 -> vrat sucet druhej
+        //ak prva polka je > 0 && druha polka > 0 -> vrat sucet
+
+        int firstSecondCount = 0;
+        int secondSecondCount = 0;
+
+        for(int i = 0; i < 10; i++){
+            System.out.print(array[i] + ", ");
+            if(i < 5) firstSecondCount += array[i];
+            else secondSecondCount += array[i];
+        }
+        for(int i = 0; i < 9; i++)
+            array[i] = array[i + 1];
+
+        if(firstSecondCount > 0 && secondSecondCount > 0) return (firstSecondCount + secondSecondCount) * 10;
+        else return secondSecondCount * 10;
+    }
+
     public Mat recognize(Mat inputFrame) {
 
         mRgba = inputFrame;
@@ -322,6 +323,7 @@ public class MjpegViewService extends Service {
         //TODO calibration mode
 
         if (calibrationMode == 1) {
+            //ZASTAV TIMER NA OCI
             faceFound = false;
             eyesFound = false;
             wearingGlasses = false;
@@ -350,7 +352,7 @@ public class MjpegViewService extends Service {
 
                     if (progressRectangle >= 440) { ////skoncil cas na kalibraciu
 
-                        isPaused = true;
+                        afterCalibrationBreak = true;
                         if (faceFound) {
                             //ma okuliare???
 
@@ -360,15 +362,18 @@ public class MjpegViewService extends Service {
                             builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
                                     // User clicked OK button
+                                    //vynuluj eyesclosed
+                                    for(int i = 0; i < 10; i++) eyesClosedArray[i] = 0;
+                                    eyesClosedFactor = 0;
                                     wearingGlasses = true;
-                                    isPaused = false;
+                                    afterCalibrationBreak = false;
                                     calibrationMode = 0;
                                 }
                             });
                             builder.setNegativeButton("no (restart calibration)", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
                                     calibrationMode = 1;
-                                    isPaused = false;
+                                    afterCalibrationBreak = false;
                                     progressRectangle = 0;
                                     Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
                                 }
@@ -376,6 +381,7 @@ public class MjpegViewService extends Service {
 
                             AlertDialog dialog = builder.create();
                             dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                            dialog.setCanceledOnTouchOutside(false);
                             dialog.show();
                         } else {
 
@@ -385,7 +391,7 @@ public class MjpegViewService extends Service {
                             builder.setPositiveButton("Restart", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
                                     calibrationMode = 1;
-                                    isPaused = false;
+                                    afterCalibrationBreak = false;
                                     progressRectangle = 0;
                                     Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
                                 }
@@ -393,6 +399,7 @@ public class MjpegViewService extends Service {
 
                             AlertDialog dialog = builder.create();
                             dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                            dialog.setCanceledOnTouchOutside(false);
                             dialog.show();
                         }
                     } else {
@@ -408,7 +415,7 @@ public class MjpegViewService extends Service {
                                 Imgproc.putText(mRgba, ">> Eyes found", new Point(880, 100), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255, 255, 0), 2);
                                 progressRectangle = 440;
                                 calibrationMode = 0;
-                                isPaused = true;
+                                afterCalibrationBreak = true;
                                 Imgproc.rectangle(mRgba, new Point(420, 460), new Point(420 + progressRectangle, 480), new Scalar(255, 255, 0), -1);
 
                                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -416,8 +423,7 @@ public class MjpegViewService extends Service {
 
                                 builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
-                                        calibrationMode = 0;
-                                        isPaused = false;
+                                        afterCalibrationBreak = false;
                                     }
                                 });
 
@@ -450,6 +456,9 @@ public class MjpegViewService extends Service {
 
                     if (!faces.empty()) {
 
+                        faceNotFound = false;
+                        headTiltedArray[9] = 0;
+
                         facesArray = faces.toArray();
                         if (facesArray.length != 0) {
                             facesArray[0].x += 420;
@@ -461,12 +470,16 @@ public class MjpegViewService extends Service {
 
                         Mat faceMat = mGray.submat(facesArray[0]);
                         if (eyeDetector != null)
-                            eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 phone cascade)
+                            eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 eye cascade)
                                     new Size(10, 10), new Size(100, 100));
 
                         if (!eyes.empty()) {
 
-                            reStartEyesClosedTimer();
+                            if(wearingGlasses){ //dal si dolu okuliare
+                                wearingGlasses = false;
+                            }
+
+                            eyesClosedArray[9] = 0;
 
                             org.opencv.core.Rect[] eyesArray = eyes.toArray();
 
@@ -489,20 +502,28 @@ public class MjpegViewService extends Service {
                                 }
                             }
                         }
+                        else{
+                            if(!wearingGlasses)
+                                eyesClosedArray[9] = 1;
+                        }
                     } else {
-                        reStartEyesClosedTimer(); // ked nenajde hlavu tak nemozem povedat ze zaspal
+                        faceNotFound = true;
+                        headTiltedArray[9] = 1;
                     }
+
+                    eyesClosedFactor = computeDrowsinessFactor(eyesClosedArray);
+                    headTiltedFactor = computeDrowsinessFactor(headTiltedArray);
 
                     //endregion
 
                     //region object detection region
 
                     if (phoneDetector != null)
-                        phoneDetector.detectMultiScale(mGray, phones, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 phone cascade)
+                        phoneDetector.detectMultiScale(mGray, phones, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 phone cascade)
                                 new Size(100, 100), new Size(500, 500));
 
                     if (coffeeDetector != null)
-                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 15 coffee cascade)
+                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
                                 new Size(100, 100), new Size(500, 500));
 
 
@@ -518,34 +539,53 @@ public class MjpegViewService extends Service {
                     if (decision == 1) {
                         coffeeDistraction = 0;
                         phoneDistraction = 50;
+                        org.opencv.core.Rect[] objectArray;
 
-                        org.opencv.core.Rect[] phonesArray = phones.toArray();
-                        Imgproc.rectangle(mRgba, phonesArray[0].tl(), phonesArray[0].br(), OBJECT_RECT_COLOR, 3);
-                        Imgproc.putText(mRgba, "phone", new Point(phonesArray[0].x, phonesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                        if(decisionMatrix[2][0] == 1) objectArray = phones.toArray();
+                        else objectArray = coffees.toArray();
+
+                        Imgproc.rectangle(mRgba, objectArray[0].tl(), objectArray[0].br(), OBJECT_RECT_COLOR, 3);
+                        Imgproc.putText(mRgba, "phone", new Point(objectArray[0].x, objectArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
                     } else {
                         if (decision == 2) {
                             phoneDistraction = 0;
                             coffeeDistraction = 50;
+                            org.opencv.core.Rect[] objectArray;
 
-                            org.opencv.core.Rect[] coffeesArray = coffees.toArray();
-                            Imgproc.rectangle(mRgba, coffeesArray[0].tl(), coffeesArray[0].br(), OBJECT_RECT_COLOR, 3);
-                            Imgproc.putText(mRgba, "coffee", new Point(coffeesArray[0].x, coffeesArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                            if(decisionMatrix[2][1] == 1) objectArray = coffees.toArray();
+                            else objectArray = phones.toArray();
+
+                            Imgproc.rectangle(mRgba, objectArray[0].tl(), objectArray[0].br(), OBJECT_RECT_COLOR, 3);
+                            Imgproc.putText(mRgba, "coffee", new Point(objectArray[0].x, objectArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
                         } else {
                             if (phoneDistraction > 0) phoneDistraction -= 5;
                             if (coffeeDistraction > 0) coffeeDistraction -= 5;
                         }
                     }
-
                     //endregion
-                    return mRgba;
                 }
             }
         }
 
         return mRgba;
-
     }
 
+    public void computeDistractionLevel(){
+        globalDistraction = phoneDistraction + coffeeDistraction + headTiltedFactor + eyesClosedFactor;
+    }
+
+    public Mat makePausedScreen(Mat inputFrame){
+        mRgba = inputFrame;
+        Mat roi = mRgba.clone();
+        double opacity = 0.7;
+
+        Imgproc.rectangle(roi, new Point(0,0), new Point(mRgba.width(), mRgba.height()), new Scalar(0,0,0),-1);
+        Core.addWeighted(roi,opacity, mRgba, 1-opacity,0, mRgba);
+        Imgproc.putText(mRgba, "PAUSED", new Point(mRgba.width() / 2 - 90, mRgba.height() / 2 - 10), Core.FONT_HERSHEY_SIMPLEX, 2, new Scalar(200,200,200), 3);
+
+        return mRgba;
+
+    }
 
     public void startPretendLongRunningTask() {
         final Runnable runnable = new Runnable() {
@@ -559,21 +599,27 @@ public class MjpegViewService extends Service {
                 if (mRun) {
                     if (surfaceDone ) {
                         try {
-
                             synchronized (mSurfaceHolder) {
                                 try {
-
                                     bm = mIn.readMjpegFrame();
-                                    if(bm != null && !isPaused) {
-                                        c = mSurfaceHolder.lockCanvas();
+                                    if(bm != null && !afterCalibrationBreak) {
                                         //
                                         //TODO: tu sa bude diat rozpoznavanie veci atd.
                                         //
-                                        mat = new Mat();
-                                        Utils.bitmapToMat(bm, mat);
-                                        mat = recognize(mat);
-                                        Utils.matToBitmap(mat, bm);
+                                        if(!isPaused || calibrationMode != 0) {
+                                            Utils.bitmapToMat(bm, mat);
+                                            mat = recognize(mat);
+                                            Utils.matToBitmap(mat, bm);
 
+                                            computeDistractionLevel();
+                                        }
+                                        else{
+                                            Utils.bitmapToMat(bm, mat);
+                                            mat = makePausedScreen(mat);
+                                            Utils.matToBitmap(mat, bm);
+                                        }
+
+                                        c = mSurfaceHolder.lockCanvas();
                                         if (!isMinimized && c != null) {
                                             destRect = destRect(bm.getWidth(), bm.getHeight());
                                             c.drawColor(Color.BLACK);
@@ -592,14 +638,14 @@ public class MjpegViewService extends Service {
                             }
                         }
                     }
-                    mHandler.postDelayed(this, 100);
+                    mHandler.postDelayed(this, 20);
                 }
                 else{
                     mHandler.removeCallbacks(this);
                 }
             }
         };
-        mHandler.postDelayed(runnable, 100);
+        mHandler.postDelayed(runnable, 20);
     }
 
     public void stop(){
