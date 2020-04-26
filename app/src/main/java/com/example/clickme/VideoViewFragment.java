@@ -20,8 +20,18 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -29,7 +39,7 @@ public class VideoViewFragment extends Fragment {
 
     private static final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
     private RequestQueue queue;
-    public final static String URL_ROOT = "http://192.168.0.129:5000/";
+    public final static String URL_ROOT = "http://10.0.0.100:5000/";
 
     private MinimizedActivityService MAS;
     private MainActivityViewModel MAVM;
@@ -42,6 +52,9 @@ public class VideoViewFragment extends Fragment {
     private Intent serviceIntent1;
     private Intent serviceIntent2;
     private Boolean stopped = false;
+    private Statistics statistics = new Statistics();
+    private int statisticCounter = 0;
+    private Boolean cleared = false;
 
     public ProgressBar distraction_level_bar;
     public TextView distraction_label;
@@ -76,46 +89,13 @@ public class VideoViewFragment extends Fragment {
         distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
         statistics_button.setEnabled(false);
 
+        queue = Volley.newRequestQueue(getActivity());
+
         calibration_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                /*queue = Volley.newRequestQueue(getActivity());
-
-                StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, URL_ROOT + "send_something",
-                        new Response.Listener<String>() {
-                            @Override
-                            public void onResponse(String response) {
-                                String nieco = "niccc";
-                                capture_button.setText(nieco);
-                                JSONObject jsonObject = null;
-                                try {
-                                    jsonObject = new JSONObject(response);
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                                try {
-                                    nieco = (String) jsonObject.get("response");
-                                    capture_button.setText(nieco);
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        },
-                        new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                Toast.makeText(getActivity(), "Server unavailable " + error.getMessage(), Toast.LENGTH_LONG).show();
-                                capture_button.setText("KOKOTINA");
-                            }
-                        });
-
-                checkAvailabilityRequest.setRetryPolicy(new DefaultRetryPolicy(
-                        1000,
-                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
-
-                queue.add(checkAvailabilityRequest);*/
+                /**/
                if(MVS != null){
 
                    calibration_button.setText("calibration");
@@ -223,13 +203,16 @@ public class VideoViewFragment extends Fragment {
                                     if(MVS.isPaused) statistics_button.setEnabled(true);
                                 }
                                 setProgress(MVS.globalDistraction);
+                                    if(!MVS.isPaused && MVS.calibrationMode == 0){ //zapis statistiky iba ak nie je pauza alebo kalibracia
+                                        makeStatistic(MVS.globalDistraction, MVS.phoneDistraction, MVS.coffeeDistraction, MVS.headTiltedFactor + MVS.eyesClosedFactor);
+                                    }
 
-                                handler.postDelayed(this, 100);
+                                handler.postDelayed(this, 200);
                             }
                         }
                     }
                 };
-                handler.postDelayed(runnable, 100);
+                handler.postDelayed(runnable, 200);
             }
         });
 
@@ -298,7 +281,126 @@ public class VideoViewFragment extends Fragment {
         MAVM.setIsUpdating(false);
         VVFVM.setIsUpdating(true);
 
+        clearStatistics();
+
         return view;
+    }
+
+    public void makeStatistic(int globalDistraction, int phoneDistraction, int coffeeDistraction, int drowsinessLevel){
+
+        if(globalDistraction > 100) globalDistraction = 100;
+
+        statistics.newStatistic(globalDistraction / 10.0, phoneDistraction, coffeeDistraction, drowsinessLevel, statisticCounter);
+
+        if(statisticCounter == 4){
+            sendStatistics();
+            statistics.init();
+            statisticCounter = 0;
+        }
+        else{
+            statisticCounter++;
+        }
+    }
+
+    public void sendStatistics(){
+
+        JSONObject statistic = new JSONObject();
+        try {
+            statistic.put("timestamp", System.currentTimeMillis()/1000);
+            double avgGD = 0;
+            double avgPD = 0;
+            double avgCD = 0;
+            double avgDL = 0;
+
+            for(int i = 0; i < 5; i++){
+                avgGD += statistics.getGlobalDistraction(i);
+                avgPD += statistics.getPhoneDistraction(i);
+                avgCD += statistics.getCoffeeDistraction(i);
+                avgDL += statistics.getDrowsinessLevel(i);
+            }
+
+            statistic.put("globalDistraction", avgGD / 5);
+            statistic.put("phoneDistraction", avgPD / 5);
+            statistic.put("coffeeDistraction", avgCD / 5);
+            statistic.put("drowsinessLevel", avgDL / 5);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        final String requestBody = statistic.toString();
+
+        StringRequest sendStatisticsRequest = new StringRequest(Request.Method.POST, URL_ROOT + "upload_data",
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                        try {
+                            JSONObject jsonObject = new JSONObject(response);
+                            System.out.println((String) jsonObject.get("result"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        System.out.println(error);
+                    }
+                }) {
+            @Override
+            public String getBodyContentType() {
+                return "application/json; charset=utf-8";
+            }
+
+            @Override
+            public byte[] getBody(){
+                try {
+                    return requestBody == null ? null : requestBody.getBytes("utf-8");
+                } catch (UnsupportedEncodingException uee) {
+                    System.out.println("Unsupported Encoding while trying to get the bytes of using  utf-8");
+                    return null;
+                }
+            }
+        };
+
+        sendStatisticsRequest.setRetryPolicy(new DefaultRetryPolicy(
+                1000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        queue.add(sendStatisticsRequest);
+
+    }
+
+    public void clearStatistics(){
+        StringRequest clearStatisticsRequest = new StringRequest(Request.Method.GET, URL_ROOT + "clear_stats",
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                        try {
+                            JSONObject jsonObject = new JSONObject(response);
+                            System.out.println((String) jsonObject.get("result"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        System.out.println(error);
+                    }
+                });
+
+        clearStatisticsRequest.setRetryPolicy(new DefaultRetryPolicy(
+                100,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        queue.add(clearStatisticsRequest);
     }
 
     public void setProgress(int distraction){
@@ -396,8 +498,8 @@ public class VideoViewFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+
         stopped = true;
-        System.out.println("////////////////////////// VVF DESTROY DONE");
         MVS.mRun = false;
         getActivity().unbindService(VVFVM.getServiceConnection());
         getActivity().unbindService(MAVM.getServiceConnection());
@@ -410,7 +512,6 @@ public class VideoViewFragment extends Fragment {
     public void onStop() {
         getActivity().moveTaskToBack(false);
         getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
-        System.out.println("////////////////////////// VVF STOP DONE");
         super.onStop();
     }
 

@@ -304,7 +304,6 @@ public class MjpegViewService extends Service {
         int secondSecondCount = 0;
 
         for(int i = 0; i < 10; i++){
-            System.out.print(array[i] + ", ");
             if(i < 5) firstSecondCount += array[i];
             else secondSecondCount += array[i];
         }
@@ -532,7 +531,6 @@ public class MjpegViewService extends Service {
 
                     if (!coffees.empty()) decisionMatrix[2][1] = 1;
                     else decisionMatrix[2][1] = 0;
-
 
                     int decision = makeDecision();
 

@@ -20,19 +20,6 @@ public class MainActivity extends AppCompatActivity {
     {
         super.onResume();
         overridePendingTransition(R.anim.slide_from_top,R.anim.slide_in_top);
-        System.out.println("////////////////////////// MAIN RESUME DONE");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        System.out.println("////////////////////////// MAIN DESTROY DONE");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        System.out.println("////////////////////////// MAIN STOP DONE");
     }
 
     @Override
@@ -48,11 +35,8 @@ public class MainActivity extends AppCompatActivity {
         DisplayMetrics displayMetrics = getApplicationContext().getResources().getDisplayMetrics();
         float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
         float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
-        System.out.println("dpHeight" + dpHeight);
-        System.out.println("dpWidth" + dpWidth);
 
         Toast.makeText(this, "ON CREATE", Toast.LENGTH_SHORT).show();
-
 
         if(OpenCVLoader.initDebug()){
             Toast.makeText(getApplicationContext(), "OpenCV initialization successful", Toast.LENGTH_LONG).show();
