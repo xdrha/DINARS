@@ -3,11 +3,11 @@ package com.example.clickme;
 public class Statistics {
 
     private double[] globalDistraction = {0,0,0,0,0};
-    private int[] phoneDistraction = {0,0,0,0,0};
-    private int[] coffeeDistraction  = {0,0,0,0,0};
-    private int[] drowsinessLevel = {0,0,0,0,0};
+    private double[] phoneDistraction = {0,0,0,0,0};
+    private double[] coffeeDistraction  = {0,0,0,0,0};
+    private double[] drowsinessLevel = {0,0,0,0,0};
 
-    public void newStatistic(double gd, int pd, int cd, int dl, int index){
+    public void newStatistic(double gd, double pd, double cd, double dl, int index){
         globalDistraction[index] = gd;
         phoneDistraction[index] = pd;
         coffeeDistraction[index] = cd;
@@ -27,15 +27,15 @@ public class Statistics {
         return globalDistraction[index];
     }
 
-    public int getPhoneDistraction(int index){
+    public double getPhoneDistraction(int index){
         return phoneDistraction[index];
     }
 
-    public int getCoffeeDistraction(int index){
+    public double getCoffeeDistraction(int index){
         return coffeeDistraction[index];
     }
 
-    public int getDrowsinessLevel(int index){
+    public double getDrowsinessLevel(int index){
         return drowsinessLevel[index];
     }
 

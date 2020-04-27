@@ -39,7 +39,7 @@ public class VideoViewFragment extends Fragment {
 
     private static final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
     private RequestQueue queue;
-    public final static String URL_ROOT = "http://10.0.0.100:5000/";
+    public final static String URL_ROOT = "http://10.0.0.1:5000/";
 
     private MinimizedActivityService MAS;
     private MainActivityViewModel MAVM;
@@ -54,7 +54,6 @@ public class VideoViewFragment extends Fragment {
     private Boolean stopped = false;
     private Statistics statistics = new Statistics();
     private int statisticCounter = 0;
-    private Boolean cleared = false;
 
     public ProgressBar distraction_level_bar;
     public TextView distraction_label;
@@ -143,6 +142,11 @@ public class VideoViewFragment extends Fragment {
         statistics_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                accidentallyMinimized = false;
+
+                Intent stats = new Intent(getActivity(), StatisticsActivity.class);
+                getActivity().startActivity(stats);
 
                 System.out.println("mv height " + mv.getHeight());
                 System.out.println("mv width " + mv.getWidth());
@@ -290,7 +294,7 @@ public class VideoViewFragment extends Fragment {
 
         if(globalDistraction > 100) globalDistraction = 100;
 
-        statistics.newStatistic(globalDistraction / 10.0, phoneDistraction, coffeeDistraction, drowsinessLevel, statisticCounter);
+        statistics.newStatistic(globalDistraction / 10.0, phoneDistraction / 10.0, coffeeDistraction / 10.0, drowsinessLevel / 10.0, statisticCounter);
 
         if(statisticCounter == 4){
             sendStatistics();
@@ -510,8 +514,10 @@ public class VideoViewFragment extends Fragment {
 
     @Override
     public void onStop() {
-        getActivity().moveTaskToBack(false);
-        getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
+        if(accidentallyMinimized) {
+            getActivity().moveTaskToBack(false);
+            getActivity().overridePendingTransition(R.anim.slide_in_up, R.anim.slide_out_up);
+        }
         super.onStop();
     }
 
