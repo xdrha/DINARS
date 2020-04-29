@@ -39,7 +39,7 @@ public class VideoViewFragment extends Fragment {
 
     private static final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
     private RequestQueue queue;
-    public final static String URL_ROOT = "http://10.0.0.1:5000/";
+    public final static String URL_ROOT = "http://10.0.0.100:5000/";
 
     private MinimizedActivityService MAS;
     private MainActivityViewModel MAVM;
@@ -94,7 +94,6 @@ public class VideoViewFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
-                /**/
                if(MVS != null){
 
                    calibration_button.setText("calibration");
@@ -147,30 +146,6 @@ public class VideoViewFragment extends Fragment {
 
                 Intent stats = new Intent(getActivity(), StatisticsActivity.class);
                 getActivity().startActivity(stats);
-
-                System.out.println("mv height " + mv.getHeight());
-                System.out.println("mv width " + mv.getWidth());
-
-                System.out.println("lll height " + lll.getHeight());
-                System.out.println("lll width " + lll.getWidth());
-
-                System.out.println("distraction_label height " + distraction_label.getHeight());
-                System.out.println("distraction_label textsize " + distraction_label.getWidth());
-
-                System.out.println("distraction_level_bar height " + distraction_level_bar.getHeight());
-                System.out.println("distraction_level_bar width " + distraction_level_bar.getWidth());
-
-                System.out.println("distraction_value height " + distraction_value.getHeight());
-                System.out.println("distraction_value width " + distraction_value.getWidth());
-
-                System.out.println("warning_image height " + warning_image.getHeight());
-                System.out.println("warning_image width " + warning_image.getWidth());
-
-                System.out.println("stop_image height " + stop_image.getHeight());
-                System.out.println("stop_image width " + stop_image.getWidth());
-
-                System.out.println("maximize height " + minimize_button.getHeight());
-                System.out.println("maximize width " + minimize_button.getWidth());
             }
         });
 
@@ -339,18 +314,11 @@ public class VideoViewFragment extends Fragment {
                     @Override
                     public void onResponse(String response) {
 
-                        try {
-                            JSONObject jsonObject = new JSONObject(response);
-                            System.out.println((String) jsonObject.get("result"));
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        System.out.println(error);
                     }
                 }) {
             @Override
@@ -363,7 +331,6 @@ public class VideoViewFragment extends Fragment {
                 try {
                     return requestBody == null ? null : requestBody.getBytes("utf-8");
                 } catch (UnsupportedEncodingException uee) {
-                    System.out.println("Unsupported Encoding while trying to get the bytes of using  utf-8");
                     return null;
                 }
             }
@@ -384,18 +351,11 @@ public class VideoViewFragment extends Fragment {
                     @Override
                     public void onResponse(String response) {
 
-                        try {
-                            JSONObject jsonObject = new JSONObject(response);
-                            System.out.println((String) jsonObject.get("result"));
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        System.out.println(error);
                     }
                 });
 

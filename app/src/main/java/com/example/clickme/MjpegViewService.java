@@ -113,23 +113,19 @@ public class MjpegViewService extends Service {
             eyeCascadeFile = new File(cascadeDir, "haarcascade_eye.xml");
 
             if ((coffeeDetector = newCascadeClassifier(coffeeCascadeFile, isCoffee)).empty()) {
-                System.out.println("///////////////////////////// Failed to load coffee cascade classifier");
                 coffeeDetector = null;
             }
 
 
             if ((phoneDetector = newCascadeClassifier(phoneCascadeFile, isPhone)).empty()) {
-                System.out.println("///////////////////////////// Failed to load phone cascade classifier");
                 phoneDetector = null;
             }
 
             if ((faceDetector = newCascadeClassifier(faceCascadeFile, isFace)).empty()) {
-                System.out.println("///////////////////////////// Failed to load face cascade classifier");
                 faceDetector = null;
             }
 
             if ((eyeDetector = newCascadeClassifier(eyeCascadeFile, isEye)).empty()) {
-                System.out.println("///////////////////////////// Failed to load eye cascade classifier");
                 eyeDetector = null;
             }
 
@@ -137,7 +133,6 @@ public class MjpegViewService extends Service {
 
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("//////////////////////////////// Failed to load cascade. Exception thrown: " + e);
         }
 
         mGray = new Mat();
@@ -646,9 +641,6 @@ public class MjpegViewService extends Service {
         mHandler.postDelayed(runnable, 20);
     }
 
-    public void stop(){
-        stopSelf();
-    }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {

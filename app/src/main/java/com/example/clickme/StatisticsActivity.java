@@ -1,11 +1,14 @@
 package com.example.clickme;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -30,7 +33,7 @@ import java.util.Map;
 public class StatisticsActivity extends AppCompatActivity {
 
     private RequestQueue queue;
-    public final String URL_ROOT = "http://10.0.0.1:5000/";
+    public final String URL_ROOT = "http://10.0.0.100:5000/";
 
     private Button overall_button;
     private Button phone_button;
@@ -100,15 +103,65 @@ public class StatisticsActivity extends AppCompatActivity {
 
         queue = Volley.newRequestQueue(this);
 
-        loadStatistics();
+        checkAvailability();
 
+    }
+
+    public void finishActivity(){
+        this.finish();
+    }
+
+    public void showErrorDialog(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
+        builder.setMessage("Server is not available!");
+
+        builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                finishActivity();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+    }
+
+    public void checkAvailability(){
+
+        queue = Volley.newRequestQueue(this);
+
+        StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, URL_ROOT + "check_availability",
+                new Response.Listener<String>()
+                {
+                    @Override
+                    public void onResponse(String response)
+                    {
+                        loadStatistics();
+                    }
+                },
+                new Response.ErrorListener()
+                {
+                    @Override
+                    public void onErrorResponse(VolleyError error)
+                    {
+                        showErrorDialog();
+                    }
+                });
+
+        checkAvailabilityRequest.setRetryPolicy(new DefaultRetryPolicy(
+                250,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        queue.add(checkAvailabilityRequest);
     }
 
     public void loadGraph(String type){
         Map<String, String> parameters = new HashMap<>();
         parameters.put("type", type);
 
-        graphView.setImageDrawable(LoadImageFromWebOperations(buildURI(URL_ROOT + "get_graph", parameters)));
+        graphView.setImageDrawable(LoadImage(buildURI(URL_ROOT + "get_graph", parameters)));
     }
 
     public static String buildURI(String url, Map<String, String> params) {
@@ -148,7 +201,7 @@ public class StatisticsActivity extends AppCompatActivity {
                     @Override
                     public void onErrorResponse(VolleyError error)
                     {
-                        System.out.println("////////////////////////////// kurva kokot pes");
+                        showErrorDialog();
                     }
                 });
 
@@ -163,29 +216,26 @@ public class StatisticsActivity extends AppCompatActivity {
     public void setColor(double value){
 
         average_progress.setProgress((int)(value * 100));
+        int color;
+
         if(value >= 5){
-            average_label.setTextColor(Color.RED);
-            average_value.setTextColor(Color.RED);
-            average_progress.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
-            danger_value.setTextColor(Color.RED);
+            color = Color.RED;
             danger_value.setText("Danger level: VERY HIGH");
         }
         else{
             if(value >= 2){
-                average_label.setTextColor(Color.YELLOW);
-                average_value.setTextColor(Color.YELLOW);
-                average_progress.getProgressDrawable().setColorFilter(Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
-                danger_value.setTextColor(Color.YELLOW);
+                color = Color.YELLOW;
                 danger_value.setText("Danger level: HIGH");
             }
             else{
-                average_label.setTextColor(Color.GREEN);
-                average_value.setTextColor(Color.GREEN);
-                average_progress.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
-                danger_value.setTextColor(Color.GREEN);
+                color = Color.GREEN;
                 danger_value.setText("Danger level: LOW");
             }
         }
+        average_label.setTextColor(color);
+        average_value.setTextColor(color);
+        average_progress.getProgressDrawable().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
+        danger_value.setTextColor(color);
     }
 
     public void setAverageValues(String type){
@@ -208,7 +258,7 @@ public class StatisticsActivity extends AppCompatActivity {
         }
     }
 
-    public static Drawable LoadImageFromWebOperations(String url) {
+    public static Drawable LoadImage(String url) {
         try {
             InputStream is = (InputStream) new URL(url).getContent();
             Drawable d = Drawable.createFromStream(is, "src name");
