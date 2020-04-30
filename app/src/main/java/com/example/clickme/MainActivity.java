@@ -3,7 +3,6 @@ package com.example.clickme;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.DisplayMetrics;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -32,16 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        DisplayMetrics displayMetrics = getApplicationContext().getResources().getDisplayMetrics();
-        float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
-        float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
-
-        Toast.makeText(this, "ON CREATE", Toast.LENGTH_SHORT).show();
-
-        if(OpenCVLoader.initDebug()){
-            Toast.makeText(getApplicationContext(), "OpenCV initialization successful", Toast.LENGTH_LONG).show();
-        }
-        else{
+        if(!OpenCVLoader.initDebug()){
             Toast.makeText(getApplicationContext(), "ERROR: in OpenCV initialization", Toast.LENGTH_LONG).show();
         }
 

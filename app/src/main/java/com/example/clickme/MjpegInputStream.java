@@ -26,8 +26,6 @@ public class MjpegInputStream extends DataInputStream {
 
     public MjpegInputStream(InputStream in) {
         super(new BufferedInputStream(in, FRAME_MAX_LENGTH));
-
-
     }
 
     private int getEndOfSeqeunce(DataInputStream in, byte[] sequence) throws IOException {

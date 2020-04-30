@@ -37,9 +37,9 @@ import java.net.URL;
 
 public class VideoViewFragment extends Fragment {
 
-    private static final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
+    private final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
     private RequestQueue queue;
-    public final static String URL_ROOT = "http://10.0.0.100:5000/";
+    private final String URL_ROOT = "http://10.0.0.100:5000/";
 
     private MinimizedActivityService MAS;
     private MainActivityViewModel MAVM;
@@ -376,57 +376,53 @@ public class VideoViewFragment extends Fragment {
             MAS.distraction_level_bar.setMax(100);
             MAS.distraction_level_bar.setProgress(distraction);
             MAS.distraction_value.setText(String.valueOf(distraction / 10.0));
+            int color = Color.GREEN;
 
             if(distraction >= 50 && distraction < 80){
+                color = Color.YELLOW;
                 MAS.warning_image.setVisibility(View.VISIBLE);
                 MAS.stop_image.setVisibility(View.INVISIBLE);
-                MAS.distraction_label.setTextColor(Color.YELLOW);
-                MAS.distraction_value.setTextColor(Color.YELLOW);
-                MAS.distraction_level_bar.getProgressDrawable().setColorFilter( Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
             }
             else{
                 if(distraction >= 80){
+                    color = Color.RED;
                     MAS.warning_image.setVisibility(View.VISIBLE);
                     MAS.stop_image.setVisibility(View.VISIBLE);
-                    MAS.distraction_label.setTextColor(Color.RED);
-                    MAS.distraction_value.setTextColor(Color.RED);
-                    MAS.distraction_level_bar.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
                 }
                 else{ // <50
                     MAS.warning_image.setVisibility(View.INVISIBLE);
                     MAS.stop_image.setVisibility(View.INVISIBLE);
-                    MAS.distraction_label.setTextColor(Color.GREEN);
-                    MAS.distraction_value.setTextColor(Color.GREEN);
-                    MAS.distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
                 }
             }
+            MAS.distraction_label.setTextColor(color);
+            MAS.distraction_value.setTextColor(color);
+            MAS.distraction_level_bar.getProgressDrawable().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
         }
         else {
             distraction_level_bar.setMax(100);
             distraction_level_bar.setProgress(distraction);
             distraction_value.setText(String.valueOf(distraction / 10.0));
+            int color = Color.GREEN;
 
             if (distraction >= 50 && distraction < 80) {
                 warning_image.setVisibility(View.VISIBLE);
                 stop_image.setVisibility(View.INVISIBLE);
-                distraction_label.setTextColor(Color.YELLOW);
-                distraction_value.setTextColor(Color.YELLOW);
-                distraction_level_bar.getProgressDrawable().setColorFilter(Color.YELLOW, android.graphics.PorterDuff.Mode.SRC_IN);
-            } else {
+                color = Color.YELLOW;
+            }
+            else {
                 if (distraction >= 80) {
                     warning_image.setVisibility(View.VISIBLE);
                     stop_image.setVisibility(View.VISIBLE);
-                    distraction_label.setTextColor(Color.RED);
-                    distraction_value.setTextColor(Color.RED);
-                    distraction_level_bar.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
-                } else { // <50
+                    color = Color.RED;
+                }
+                else { // <50
                     warning_image.setVisibility(View.INVISIBLE);
                     stop_image.setVisibility(View.INVISIBLE);
-                    distraction_label.setTextColor(Color.GREEN);
-                    distraction_value.setTextColor(Color.GREEN);
-                    distraction_level_bar.getProgressDrawable().setColorFilter(Color.GREEN, android.graphics.PorterDuff.Mode.SRC_IN);
                 }
             }
+            distraction_label.setTextColor(color);
+            distraction_value.setTextColor(color);
+            distraction_level_bar.getProgressDrawable().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
         }
     }
 

@@ -78,7 +78,7 @@ public class MjpegViewService extends Service {
     public int coffeeDistraction = 0;
     public int eyesClosedFactor = 0;
     public int headTiltedFactor = 0;
-    public int decisionMatrix[][] = {{0,0},{0,0},{0,0}};
+    public int decisionMatrix[][] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
     public int eyesClosedArray[] = {0,0,0,0,0,0,0,0,0,0};
     public int headTiltedArray[] = {0,0,0,0,0,0,0,0,0,0};
 
@@ -115,7 +115,6 @@ public class MjpegViewService extends Service {
             if ((coffeeDetector = newCascadeClassifier(coffeeCascadeFile, isCoffee)).empty()) {
                 coffeeDetector = null;
             }
-
 
             if ((phoneDetector = newCascadeClassifier(phoneCascadeFile, isPhone)).empty()) {
                 phoneDetector = null;
@@ -204,21 +203,21 @@ public class MjpegViewService extends Service {
         int countPhones = 0;
         int countCoffees = 0;
 
-        for(int i = 0; i < 3; i++){
+        for(int i = 0; i < 5; i++){
             countPhones += decisionMatrix[i][0];
             countCoffees += decisionMatrix[i][1];
         }
 
-        decisionMatrix[0][0] = decisionMatrix[1][0];
-        decisionMatrix[1][0] = decisionMatrix[2][0];
-        decisionMatrix[0][1] = decisionMatrix[1][1];
-        decisionMatrix[1][1] = decisionMatrix[2][1];
+        for(int i = 0; i < 4; i++){
+            decisionMatrix[i][0] = decisionMatrix[i + 1][0];
+            decisionMatrix[i][1] = decisionMatrix[i + 1][1];
+        }
 
-        if(decisionMatrix[2][0] == 0 && decisionMatrix[2][1] == 0) return 0; //ked nic nepride nema co vykreslit :(
-        if(countPhones == 0 && countCoffees == 0) return 0;
-        if(countCoffees > countPhones && decisionMatrix[1][1] == 1) return 2;
+        if(decisionMatrix[4][0] == 0 && decisionMatrix[4][1] == 0) return 0; //ked nic nepride nema co vykreslit :(
+        if(countPhones <= 2 && countCoffees <= 2) return 0;
+        if(countCoffees > countPhones && decisionMatrix[3][1] == 1) return 2;
         else
-            if(decisionMatrix[1][0] == 1) return 1;
+            if(decisionMatrix[3][0] == 1) return 1;
 
         return 0;
     }
@@ -317,7 +316,6 @@ public class MjpegViewService extends Service {
         //TODO calibration mode
 
         if (calibrationMode == 1) {
-            //ZASTAV TIMER NA OCI
             faceFound = false;
             eyesFound = false;
             wearingGlasses = false;
@@ -355,7 +353,6 @@ public class MjpegViewService extends Service {
 
                             builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
-                                    // User clicked OK button
                                     //vynuluj eyesclosed
                                     for(int i = 0; i < 10; i++) eyesClosedArray[i] = 0;
                                     eyesClosedFactor = 0;
@@ -444,7 +441,7 @@ public class MjpegViewService extends Service {
 
                     if (faceDetector != null)
                         faceDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(420, 30, 440, 370)), faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
-                                new Size(100, 100), new Size(900, 900));
+                                new Size(100, 100), new Size(400, 400));
 
                     org.opencv.core.Rect[] facesArray;
 
@@ -517,15 +514,15 @@ public class MjpegViewService extends Service {
                                 new Size(100, 100), new Size(500, 500));
 
                     if (coffeeDetector != null)
-                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
+                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
                                 new Size(100, 100), new Size(500, 500));
 
 
-                    if (!phones.empty()) decisionMatrix[2][0] = 1;
-                    else decisionMatrix[2][0] = 0;
+                    if (!phones.empty()) decisionMatrix[4][0] = 1;
+                    else decisionMatrix[4][0] = 0;
 
-                    if (!coffees.empty()) decisionMatrix[2][1] = 1;
-                    else decisionMatrix[2][1] = 0;
+                    if (!coffees.empty()) decisionMatrix[4][1] = 1;
+                    else decisionMatrix[4][1] = 0;
 
                     int decision = makeDecision();
 
@@ -534,7 +531,7 @@ public class MjpegViewService extends Service {
                         phoneDistraction = 50;
                         org.opencv.core.Rect[] objectArray;
 
-                        if(decisionMatrix[2][0] == 1) objectArray = phones.toArray();
+                        if(decisionMatrix[4][0] == 1) objectArray = phones.toArray();
                         else objectArray = coffees.toArray();
 
                         Imgproc.rectangle(mRgba, objectArray[0].tl(), objectArray[0].br(), OBJECT_RECT_COLOR, 3);
@@ -545,7 +542,7 @@ public class MjpegViewService extends Service {
                             coffeeDistraction = 50;
                             org.opencv.core.Rect[] objectArray;
 
-                            if(decisionMatrix[2][1] == 1) objectArray = coffees.toArray();
+                            if(decisionMatrix[4][1] == 1) objectArray = coffees.toArray();
                             else objectArray = phones.toArray();
 
                             Imgproc.rectangle(mRgba, objectArray[0].tl(), objectArray[0].br(), OBJECT_RECT_COLOR, 3);
