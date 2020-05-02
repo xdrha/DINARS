@@ -10,34 +10,65 @@ import android.os.IBinder;
 public class VideoViewFragmentViewModel extends ViewModel {
 
     private MutableLiveData<Boolean> isProcessing = new MutableLiveData<>();
-    private MutableLiveData<MJpegViewService.MyBinder> myBinder = new MutableLiveData<>();
+    private MutableLiveData<MJpegViewService.MyBinder> mJpegViewServiceBinder = new MutableLiveData<>();
+    private MutableLiveData<Boolean> isActivityHidden = new MutableLiveData<>();
+    private MutableLiveData<MinimizedActivityService.MyBinder> minimizedActivityBinder = new MutableLiveData<>();
 
     public LiveData<Boolean> getIsVideoProcessing(){
         return isProcessing;
     }
 
-    public LiveData<MJpegViewService.MyBinder> getBinder(){
-        return myBinder;
+    public LiveData<MJpegViewService.MyBinder> getMJVSBinder(){
+        return mJpegViewServiceBinder;
+    }
+    public LiveData<Boolean> getIsHidden(){
+        return isActivityHidden;
     }
 
-    private ServiceConnection serviceConnection = new ServiceConnection() {
+    public LiveData<MinimizedActivityService.MyBinder> getMASBinder(){
+        return minimizedActivityBinder;
+    }
+
+
+    private ServiceConnection MJVSConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             MJpegViewService.MyBinder binder = (MJpegViewService.MyBinder) iBinder;
-            myBinder.postValue(binder);
+            mJpegViewServiceBinder.postValue(binder);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            myBinder.postValue(null);
+            mJpegViewServiceBinder.postValue(null);
         }
     };
 
-    public ServiceConnection getServiceConnection(){
-        return serviceConnection;
+    private ServiceConnection MASConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            MinimizedActivityService.MyBinder binder = (MinimizedActivityService.MyBinder) iBinder;
+            minimizedActivityBinder.postValue(binder);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            minimizedActivityBinder.postValue(null);
+        }
+    };
+
+    public ServiceConnection getMJVSConnection(){
+        return MJVSConnection;
     }
 
     public void setIsProcessing(Boolean result){
         isProcessing.postValue(result);
+    }
+
+    public ServiceConnection getMASConnection(){
+        return MASConnection;
+    }
+
+    public void setIsHidden(Boolean isUpdating){
+        isActivityHidden.postValue(isUpdating);
     }
 }

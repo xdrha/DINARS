@@ -40,7 +40,6 @@ public class VideoViewFragment extends Fragment {
     private RequestQueue queue;
 
     private MinimizedActivityService MAS;
-    private MainActivityViewModel MAVM;
     private MJpegView mv;
 
     private VideoViewFragmentViewModel VVFVM;
@@ -148,7 +147,7 @@ public class VideoViewFragment extends Fragment {
 
         VVFVM = ViewModelProviders.of(this).get(VideoViewFragmentViewModel.class);
 
-        VVFVM.getBinder().observe(this, new Observer<MJpegViewService.MyBinder>() {
+        VVFVM.getMJVSBinder().observe(this, new Observer<MJpegViewService.MyBinder>() {
             @Override
             public void onChanged(@Nullable MJpegViewService.MyBinder myBinder) {
                 if(myBinder != null){
@@ -157,6 +156,18 @@ public class VideoViewFragment extends Fragment {
                 }
                 else{
                     MVS = null;
+                }
+            }
+        });
+
+        VVFVM.getMASBinder().observe(this, new Observer<MinimizedActivityService.MyBinder>(){
+            @Override
+            public void onChanged(@Nullable MinimizedActivityService.MyBinder myBinder) {
+                if(myBinder != null){
+                    MAS = myBinder.getService();
+                }
+                else{
+                    MAS = null;
                 }
             }
         });
@@ -192,21 +203,7 @@ public class VideoViewFragment extends Fragment {
             }
         });
 
-        MAVM = ViewModelProviders.of(this).get(MainActivityViewModel.class);
-
-        MAVM.getBinder().observe(this, new Observer<MinimizedActivityService.MyBinder>() {
-            @Override
-            public void onChanged(@Nullable MinimizedActivityService.MyBinder myBinder) {
-                if(myBinder != null){
-                    MAS = myBinder.getService();
-                }
-                else{
-                    MAS = null;
-                }
-            }
-        });
-
-        MAVM.getIsHidden().observe(this, new Observer<Boolean>() {
+        VVFVM.getIsHidden().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable final Boolean aBoolean) {
 
@@ -254,7 +251,7 @@ public class VideoViewFragment extends Fragment {
 
         startService1();
         startService2();
-        MAVM.setIsHidden(false);
+        VVFVM.setIsHidden(false);
         VVFVM.setIsProcessing(true);
 
         clearStatistics();
@@ -425,7 +422,7 @@ public class VideoViewFragment extends Fragment {
 
     public void minimize(){
         mv.minimized = true;
-        MAVM.setIsHidden(true);
+        VVFVM.setIsHidden(true);
         MAS.resumeInterface();
     }
 
@@ -434,7 +431,7 @@ public class VideoViewFragment extends Fragment {
         mainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startActivity(mainActivity);
         mv.minimized = false;
-        MAVM.setIsHidden(false);
+        VVFVM.setIsHidden(false);
     }
 
     public void onPause(){
@@ -458,8 +455,8 @@ public class VideoViewFragment extends Fragment {
 
         stopped = true;
         MVS.mRun = false;
-        getActivity().unbindService(VVFVM.getServiceConnection());
-        getActivity().unbindService(MAVM.getServiceConnection());
+        getActivity().unbindService(VVFVM.getMJVSConnection());
+        getActivity().unbindService(VVFVM.getMASConnection());
         getActivity().finishAffinity();
         System.exit(0);
         super.onDestroy();
@@ -477,13 +474,13 @@ public class VideoViewFragment extends Fragment {
     public void startService1(){
         serviceIntent1 = new Intent(getActivity(), MinimizedActivityService.class);
         getActivity().startService(serviceIntent1);
-        getActivity().bindService(serviceIntent1, MAVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
+        getActivity().bindService(serviceIntent1, VVFVM.getMASConnection(), Context.BIND_AUTO_CREATE);
     }
 
     public void startService2(){
         serviceIntent2 = new Intent(getActivity(), MJpegViewService.class);
         getActivity().startService(serviceIntent2);
-        getActivity().bindService(serviceIntent2, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
+        getActivity().bindService(serviceIntent2, VVFVM.getMJVSConnection(), Context.BIND_AUTO_CREATE);
     }
 
     public class DoRead extends AsyncTask<String, Void, MjpegInputStream> {
