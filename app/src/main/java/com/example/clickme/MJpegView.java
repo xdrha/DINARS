@@ -8,7 +8,7 @@ import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
+public class MJpegView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "MjpegView";
 
     public final static int POSITION_UPPER_LEFT  = 9;
@@ -44,8 +44,8 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
         overlayPaint.setTypeface(Typeface.DEFAULT);
         overlayTextColor = Color.WHITE;
         overlayBackgroundColor = Color.BLACK;
-        ovlPos = MjpegView.POSITION_LOWER_RIGHT;
-        displayMode = MjpegView.SIZE_STANDARD;
+        ovlPos = MJpegView.POSITION_LOWER_RIGHT;
+        displayMode = MJpegView.SIZE_STANDARD;
         dispWidth = getWidth();
         dispHeight = getHeight();
     }
@@ -64,7 +64,7 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
         }*/
     }
 
-    public MjpegView(Context context, AttributeSet attrs) {
+    public MJpegView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init(context);
     }
@@ -78,7 +78,7 @@ public class MjpegView extends SurfaceView implements SurfaceHolder.Callback {
         stopPlayback();
     }
 
-    public MjpegView(Context context) {
+    public MJpegView(Context context) {
         super(context);
         init(context);
     }

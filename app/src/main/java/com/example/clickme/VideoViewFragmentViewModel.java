@@ -9,21 +9,21 @@ import android.os.IBinder;
 
 public class VideoViewFragmentViewModel extends ViewModel {
 
-    private MutableLiveData<Boolean> mIsResultNull = new MutableLiveData<>();
-    private MutableLiveData<MjpegViewService.MyBinder> myBinder = new MutableLiveData<>();
+    private MutableLiveData<Boolean> isProcessing = new MutableLiveData<>();
+    private MutableLiveData<MJpegViewService.MyBinder> myBinder = new MutableLiveData<>();
 
-    public LiveData<Boolean> getIsProgressUpdating(){
-        return mIsResultNull;
+    public LiveData<Boolean> getIsVideoProcessing(){
+        return isProcessing;
     }
 
-    public LiveData<MjpegViewService.MyBinder> getBinder(){
+    public LiveData<MJpegViewService.MyBinder> getBinder(){
         return myBinder;
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            MjpegViewService.MyBinder binder = (MjpegViewService.MyBinder) iBinder;
+            MJpegViewService.MyBinder binder = (MJpegViewService.MyBinder) iBinder;
             myBinder.postValue(binder);
         }
 
@@ -37,7 +37,7 @@ public class VideoViewFragmentViewModel extends ViewModel {
         return serviceConnection;
     }
 
-    public void setIsUpdating(Boolean result){
-        mIsResultNull.postValue(result);
+    public void setIsProcessing(Boolean result){
+        isProcessing.postValue(result);
     }
 }

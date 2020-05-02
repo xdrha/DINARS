@@ -37,16 +37,14 @@ import java.net.URL;
 
 public class VideoViewFragment extends Fragment {
 
-    private final String URL = "http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi";
     private RequestQueue queue;
-    private final String URL_ROOT = "http://10.0.0.100:5000/";
 
     private MinimizedActivityService MAS;
     private MainActivityViewModel MAVM;
-    private MjpegView mv;
+    private MJpegView mv;
 
     private VideoViewFragmentViewModel VVFVM;
-    private MjpegViewService MVS;
+    private MJpegViewService MVS;
     private MjpegInputStream result;
     private Boolean accidentallyMinimized = true;
     private Intent serviceIntent1;
@@ -96,7 +94,6 @@ public class VideoViewFragment extends Fragment {
 
                if(MVS != null){
 
-                   calibration_button.setText("calibration");
                    if(MVS.calibrationMode == 0) MVS.calibrationMode = 1;
                    else
                        if(MVS.calibrationMode == 1) MVS.calibrationMode = 2;
@@ -151,12 +148,12 @@ public class VideoViewFragment extends Fragment {
 
         VVFVM = ViewModelProviders.of(this).get(VideoViewFragmentViewModel.class);
 
-        VVFVM.getBinder().observe(this, new Observer<MjpegViewService.MyBinder>() {
+        VVFVM.getBinder().observe(this, new Observer<MJpegViewService.MyBinder>() {
             @Override
-            public void onChanged(@Nullable MjpegViewService.MyBinder myBinder) {
+            public void onChanged(@Nullable MJpegViewService.MyBinder myBinder) {
                 if(myBinder != null){
                     MVS = myBinder.getService();
-                    new DoRead().execute(URL);
+                    new DoRead().execute(getResources().getString(R.string.urlCam));
                 }
                 else{
                     MVS = null;
@@ -164,7 +161,7 @@ public class VideoViewFragment extends Fragment {
             }
         });
 
-        VVFVM.getIsProgressUpdating().observe(this, new Observer<Boolean>() {
+        VVFVM.getIsVideoProcessing().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable final Boolean aBoolean) {
                 final Handler handler = new Handler();
@@ -209,7 +206,7 @@ public class VideoViewFragment extends Fragment {
             }
         });
 
-        MAVM.getIsProgressUpdating().observe(this, new Observer<Boolean>() {
+        MAVM.getIsHidden().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable final Boolean aBoolean) {
 
@@ -257,8 +254,8 @@ public class VideoViewFragment extends Fragment {
 
         startService1();
         startService2();
-        MAVM.setIsUpdating(false);
-        VVFVM.setIsUpdating(true);
+        MAVM.setIsHidden(false);
+        VVFVM.setIsProcessing(true);
 
         clearStatistics();
 
@@ -309,7 +306,7 @@ public class VideoViewFragment extends Fragment {
 
         final String requestBody = statistic.toString();
 
-        StringRequest sendStatisticsRequest = new StringRequest(Request.Method.POST, URL_ROOT + "upload_data",
+        StringRequest sendStatisticsRequest = new StringRequest(Request.Method.POST, getResources().getString(R.string.urlServer) + "upload_data",
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
@@ -346,7 +343,7 @@ public class VideoViewFragment extends Fragment {
     }
 
     public void clearStatistics(){
-        StringRequest clearStatisticsRequest = new StringRequest(Request.Method.GET, URL_ROOT + "clear_stats",
+        StringRequest clearStatisticsRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "clear_stats",
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
@@ -428,7 +425,7 @@ public class VideoViewFragment extends Fragment {
 
     public void minimize(){
         mv.minimized = true;
-        MAVM.setIsUpdating(true);
+        MAVM.setIsHidden(true);
         MAS.resumeInterface();
     }
 
@@ -437,7 +434,7 @@ public class VideoViewFragment extends Fragment {
         mainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startActivity(mainActivity);
         mv.minimized = false;
-        MAVM.setIsUpdating(false);
+        MAVM.setIsHidden(false);
     }
 
     public void onPause(){
@@ -484,7 +481,7 @@ public class VideoViewFragment extends Fragment {
     }
 
     public void startService2(){
-        serviceIntent2 = new Intent(getActivity(), MjpegViewService.class);
+        serviceIntent2 = new Intent(getActivity(), MJpegViewService.class);
         getActivity().startService(serviceIntent2);
         getActivity().bindService(serviceIntent2, VVFVM.getServiceConnection(), Context.BIND_AUTO_CREATE);
     }
@@ -517,7 +514,7 @@ public class VideoViewFragment extends Fragment {
             if (res != null) {
                 mv.mIn = res;
                 result = res;
-                VVFVM.setIsUpdating(true);
+                VVFVM.setIsProcessing(true);
 
                 if(mv.mIn != null) {
                     MVS.mIn = result;
@@ -527,7 +524,7 @@ public class VideoViewFragment extends Fragment {
                     MVS.setSurfaceSize(788, 443);
                     MVS.startPretendLongRunningTask();
 
-                    MVS.setDisplayMode(MjpegView.SIZE_BEST_FIT);
+                    MVS.setDisplayMode(MJpegView.SIZE_BEST_FIT);
                 }
 
 

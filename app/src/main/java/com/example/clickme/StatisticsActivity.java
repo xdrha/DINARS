@@ -33,7 +33,6 @@ import java.util.Map;
 public class StatisticsActivity extends AppCompatActivity {
 
     private RequestQueue queue;
-    public final String URL_ROOT = "http://10.0.0.100:5000/";
 
     private Button overall_button;
     private Button phone_button;
@@ -100,7 +99,6 @@ public class StatisticsActivity extends AppCompatActivity {
             }
         });
 
-
         queue = Volley.newRequestQueue(this);
 
         checkAvailability();
@@ -129,9 +127,7 @@ public class StatisticsActivity extends AppCompatActivity {
 
     public void checkAvailability(){
 
-        queue = Volley.newRequestQueue(this);
-
-        StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, URL_ROOT + "check_availability",
+        StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "check_availability",
                 new Response.Listener<String>()
                 {
                     @Override
@@ -161,7 +157,7 @@ public class StatisticsActivity extends AppCompatActivity {
         Map<String, String> parameters = new HashMap<>();
         parameters.put("type", type);
 
-        graphView.setImageDrawable(LoadImage(buildURI(URL_ROOT + "get_graph", parameters)));
+        graphView.setImageDrawable(LoadImage(buildURI(getResources().getString(R.string.urlServer) + "get_graph", parameters)));
     }
 
     public static String buildURI(String url, Map<String, String> params) {
@@ -176,7 +172,7 @@ public class StatisticsActivity extends AppCompatActivity {
 
     public void loadStatistics(){
 
-        StringRequest loadStatsRequest = new StringRequest(Request.Method.GET, URL_ROOT + "load_graph_data",
+        StringRequest loadStatsRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "load_graph_data",
                 new Response.Listener<String>()
                 {
                     @Override

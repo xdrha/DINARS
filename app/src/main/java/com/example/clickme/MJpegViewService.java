@@ -32,9 +32,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MjpegViewService extends Service {
+public class MJpegViewService extends Service {
     public SurfaceHolder mSurfaceHolder;
-    private IBinder mBinder = new MjpegViewService.MyBinder();
+    private IBinder mBinder = new MJpegViewService.MyBinder();
     private Handler mHandler;
     public MjpegInputStream mIn = null;
     public boolean mRun = false;
@@ -157,8 +157,8 @@ public class MjpegViewService extends Service {
     }
 
     public class MyBinder extends Binder {
-        MjpegViewService getService(){
-            return MjpegViewService.this;
+        MJpegViewService getService(){
+            return MJpegViewService.this;
         }
     }
 
@@ -168,12 +168,12 @@ public class MjpegViewService extends Service {
 
         int tempx;
         int tempy;
-        if (displayMode == MjpegView.SIZE_STANDARD) {
+        if (displayMode == MJpegView.SIZE_STANDARD) {
             tempx = (dispWidth / 2) - (bmw / 2);
             tempy = (dispHeight / 2) - (bmh / 2);
             return new Rect(tempx, tempy, bmw + tempx, bmh + tempy);
         }
-        if (displayMode == MjpegView.SIZE_BEST_FIT) {
+        if (displayMode == MJpegView.SIZE_BEST_FIT) {
             float bmasp = (float) bmw / (float) bmh;
             bmw = dispWidth;
             bmh = (int) (dispWidth / bmasp);
@@ -185,7 +185,7 @@ public class MjpegViewService extends Service {
             tempy = (dispHeight / 2) - (bmh / 2);
             return new Rect(tempx, tempy, bmw + tempx, bmh + tempy);
         }
-        if (displayMode == MjpegView.SIZE_FULLSCREEN){
+        if (displayMode == MJpegView.SIZE_FULLSCREEN){
             return new Rect(0, 0, dispWidth, dispHeight);
         }
         return null;
@@ -514,7 +514,7 @@ public class MjpegViewService extends Service {
                                 new Size(100, 100), new Size(500, 500));
 
                     if (coffeeDetector != null)
-                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 15, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
+                        coffeeDetector.detectMultiScale(mGray, coffees, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
                                 new Size(100, 100), new Size(500, 500));
 
 

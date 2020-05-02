@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="urlCam">http://admin:ms1234@10.0.0.3:80/ipcam/mjpeg.cgi</string>
+    <string name="urlServer">http://10.0.0.100:5000/</string>
+</resources>

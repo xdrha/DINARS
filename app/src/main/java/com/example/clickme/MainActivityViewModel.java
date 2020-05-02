@@ -10,11 +10,11 @@ import android.os.IBinder;
 
 public class MainActivityViewModel extends ViewModel {
 
-    private MutableLiveData<Boolean> mIsProgressUpdating = new MutableLiveData<>();
+    private MutableLiveData<Boolean> isActivityHidden = new MutableLiveData<>();
     private MutableLiveData<MinimizedActivityService.MyBinder> myBinder = new MutableLiveData<>();
 
-    public LiveData<Boolean> getIsProgressUpdating(){
-        return mIsProgressUpdating;
+    public LiveData<Boolean> getIsHidden(){
+        return isActivityHidden;
     }
 
     public LiveData<MinimizedActivityService.MyBinder> getBinder(){
@@ -38,7 +38,7 @@ public class MainActivityViewModel extends ViewModel {
         return serviceConnection;
     }
 
-    public void setIsUpdating(Boolean isUpdating){
-        mIsProgressUpdating.postValue(isUpdating);
+    public void setIsHidden(Boolean isUpdating){
+        isActivityHidden.postValue(isUpdating);
     }
 }
