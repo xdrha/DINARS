@@ -36,7 +36,7 @@ public class MJpegViewService extends Service {
     public SurfaceHolder mSurfaceHolder;
     private IBinder mBinder = new MJpegViewService.MyBinder();
     private Handler mHandler;
-    public MjpegInputStream mIn = null;
+    public MJpegInputStream mIn = null;
     public boolean mRun = false;
     private boolean surfaceDone = false;
     private int dispWidth;
@@ -168,11 +168,7 @@ public class MJpegViewService extends Service {
 
         int tempx;
         int tempy;
-        if (displayMode == MJpegView.SIZE_STANDARD) {
-            tempx = (dispWidth / 2) - (bmw / 2);
-            tempy = (dispHeight / 2) - (bmh / 2);
-            return new Rect(tempx, tempy, bmw + tempx, bmh + tempy);
-        }
+
         if (displayMode == MJpegView.SIZE_BEST_FIT) {
             float bmasp = (float) bmw / (float) bmh;
             bmw = dispWidth;
@@ -185,8 +181,17 @@ public class MJpegViewService extends Service {
             tempy = (dispHeight / 2) - (bmh / 2);
             return new Rect(tempx, tempy, bmw + tempx, bmh + tempy);
         }
-        if (displayMode == MJpegView.SIZE_FULLSCREEN){
-            return new Rect(0, 0, dispWidth, dispHeight);
+        else{
+            if (displayMode == MJpegView.SIZE_STANDARD) {
+                tempx = (dispWidth / 2) - (bmw / 2);
+                tempy = (dispHeight / 2) - (bmh / 2);
+                return new Rect(tempx, tempy, bmw + tempx, bmh + tempy);
+            }
+            else{
+                if (displayMode == MJpegView.SIZE_FULLSCREEN){
+                    return new Rect(0, 0, dispWidth, dispHeight);
+                }
+            }
         }
         return null;
     }
@@ -332,7 +337,7 @@ public class MJpegViewService extends Service {
         }
         else {
             if (calibrationMode == 2 || calibrationMode == 3) {
-                 drawCalibrationMode();
+                drawCalibrationMode();
                 Imgproc.putText(mRgba, "Calibration progress", new Point(420, 450), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255,255,255), 2);
                 Imgproc.rectangle(mRgba, new Point(420, 460), new Point(860,480), new Scalar(200,200,200), -1);
 
@@ -587,11 +592,11 @@ public class MJpegViewService extends Service {
                 Canvas c = null;
                 Paint p = new Paint();
                 if (mRun) {
-                    if (surfaceDone ) {
+                    if (surfaceDone) {
                         try {
                             synchronized (mSurfaceHolder) {
                                 try {
-                                    bm = mIn.readMjpegFrame();
+                                    bm = mIn.readMJpegFrame();
                                     if(bm != null && !afterCalibrationBreak) {
                                         //
                                         //TODO: tu sa bude diat rozpoznavanie veci atd.

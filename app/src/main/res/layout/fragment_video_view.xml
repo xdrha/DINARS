@@ -124,7 +124,7 @@ android:orientation="vertical">
         android:layout_weight="0.45"
         android:layout_height="match_parent"
         android:max="10"
-        android:progress="4"
+        android:progress="0"
         android:scaleY="2" />
 
     <TextView
@@ -133,7 +133,7 @@ android:orientation="vertical">
         android:layout_weight="0.092"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="  4.0"
+        android:text="  0.0"
         android:textSize="25sp" />
 
     <ImageView

@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.view.Gravity;
@@ -34,10 +33,8 @@ public class MinimizedActivityService extends Service{
     private WindowManager.LayoutParams params;
 
     private IBinder mBinder = new MinimizedActivityService.MyBinder();
-    private Handler mHandler;
-    private int mProgress, mMaxValue;
-    private boolean mIsPaused;
-    public boolean hiden = false;
+
+    public Boolean hidden = false;
     private Boolean added = false;
 
     public class MyBinder extends Binder {
@@ -57,10 +54,6 @@ public class MinimizedActivityService extends Service{
     @Override
     public void onCreate() {
         super.onCreate();
-        mHandler = new Handler();
-        mProgress = 0;
-        mIsPaused = true;
-        mMaxValue = 5000;
 
         try {
             Thread.sleep(420);
@@ -139,7 +132,7 @@ public class MinimizedActivityService extends Service{
     }
 
     public void hideTopPanel(){
-        hiden = true;
+        hidden = true;
         if(added) {
             wm.removeView(LL);
             added = false;
@@ -156,13 +149,12 @@ public class MinimizedActivityService extends Service{
     }
 
     public void resumeInterface(){
-        hiden = false;
+        hidden = false;
         if(!added) {
             wm.addView(LL, params);
             added = true;
         }
     }
-
 
     @Override
     public void onTaskRemoved(Intent rootIntent){
