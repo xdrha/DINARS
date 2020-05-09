@@ -5,6 +5,7 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,6 +63,10 @@ public class VideoViewFragment extends Fragment {
     public LinearLayout lll;
     private MJpegView MV;
 
+    public MediaPlayer beepPlayer;
+    public int beepStatus = 0;
+    public int beepDelay = 500;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -85,6 +90,8 @@ public class VideoViewFragment extends Fragment {
         statistics_button.setEnabled(false);
 
         queue = Volley.newRequestQueue(getActivity());
+
+        beepPlayer = MediaPlayer.create(getContext(), R.raw.beep_long);
 
         calibration_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -175,19 +182,41 @@ public class VideoViewFragment extends Fragment {
                         if(MVS != null) {
                             if (aBoolean) {
 
-                                if(MVS.calibrationMode == 0)
-                                    if (!break_button.isEnabled()){ //ak dokoncilo kalibraciu
-                                    if(!MVS.isPaused) minimize_button.setEnabled(true);
-                                    break_button.setEnabled(true);
-                                    break_button.setImageResource(R.drawable.coffee);
-                                    if(MVS.isPaused) statistics_button.setEnabled(true);
-                                }
-                                setProgress(MVS.globalDistraction);
-                                    if(!MVS.isPaused && MVS.calibrationMode == 0){ //zapis statistiky iba ak nie je pauza alebo kalibracia
+                                if(MVS.calibrationMode == 0) {
+                                    if (!break_button.isEnabled()) { //ak dokoncilo kalibraciu
+                                        if (!MVS.isPaused)
+                                            minimize_button.setEnabled(true);
+                                        break_button.setEnabled(true);
+                                        break_button.setImageResource(R.drawable.coffee);
+                                        if (MVS.isPaused)
+                                            statistics_button.setEnabled(true);
+                                    }
+                                    if (!MVS.isPaused) { //zapis statistiky iba ak nie je pauza alebo kalibracia
+                                        setProgress(MVS.globalDistraction);
                                         makeStatistic(MVS.globalDistraction, MVS.phoneDistraction, MVS.coffeeDistraction, MVS.headTiltedFactor + MVS.eyesClosedFactor);
                                     }
-
+                                }
                                 handler.postDelayed(this, 200);
+                            }
+                        }
+                    }
+                };
+                handler.postDelayed(runnable, 200);
+            }
+        });
+
+        VVFVM.getIsBeepNeeded().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable final Boolean aBoolean) {
+                final Handler handler = new Handler();
+                final Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (aBoolean) {
+                            if(MVS != null) {
+                                if (beepStatus > 0 && MVS.calibrationMode == 0 && !MVS.isPaused)
+                                    beepPlayer.start();
+                                handler.postDelayed(this, beepDelay);
                             }
                         }
                     }
@@ -271,7 +300,6 @@ public class VideoViewFragment extends Fragment {
 
         JSONObject statistic = new JSONObject();
         try {
-            statistic.put("timestamp", System.currentTimeMillis()/1000);
             double avgGD = 0;
             double avgPD = 0;
             double avgCD = 0;
@@ -353,16 +381,45 @@ public class VideoViewFragment extends Fragment {
         queue.add(clearStatisticsRequest);
     }
 
+    public void doBeep(int distraction){
+        if(distraction >= 50){
+            if(distraction >= 80){
+                if(beepStatus == 0) {
+                    VVFVM.setIsBeepNeeded(true);
+                    beepStatus = 1;
+                }
+                beepDelay = 300;
+            }
+            else{
+                if(beepStatus == 0) {
+                    VVFVM.setIsBeepNeeded(true);
+                    beepStatus = 1;
+                }
+                beepDelay = 1000;
+            }
+        }
+        else{
+            if(beepStatus > 0) {
+                VVFVM.setIsBeepNeeded(false);
+                beepStatus = 0;
+            }
+        }
+    }
+
     public void setProgress(int distraction){
 
+        doBeep(distraction);
+
         if(distraction > 100) distraction = 100;
+
+        int color;
 
         if(MV.minimized){
 
             MAS.distraction_level_bar.setMax(100);
             MAS.distraction_level_bar.setProgress(distraction);
             MAS.distraction_value.setText(String.valueOf(distraction / 10.0));
-            int color = Color.GREEN;
+            color = Color.GREEN;
 
             if(distraction >= 50 && distraction < 80){
                 color = Color.YELLOW;
@@ -388,7 +445,7 @@ public class VideoViewFragment extends Fragment {
             distraction_level_bar.setMax(100);
             distraction_level_bar.setProgress(distraction);
             distraction_value.setText(String.valueOf(distraction / 10.0));
-            int color = Color.GREEN;
+            color = Color.GREEN;
 
             if (distraction >= 50 && distraction < 80) {
                 warning_image.setVisibility(View.VISIBLE);
@@ -482,8 +539,8 @@ public class VideoViewFragment extends Fragment {
             try {
                 java.net.URL url = new URL(Url[0]); // here is your URL path
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(150 );
-                conn.setConnectTimeout(150);
+                conn.setReadTimeout(550 );
+                conn.setConnectTimeout(550);
                 int responseCode = conn.getResponseCode();
 
                 if (responseCode == 401) {

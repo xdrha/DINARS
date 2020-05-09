@@ -21,7 +21,6 @@ public class MJpegInputStream extends DataInputStream {
     private int mContentLength = -1;
 
 
-
     public MJpegInputStream(InputStream in) {
         super(new BufferedInputStream(in, FRAME_MAX_LENGTH));
     }

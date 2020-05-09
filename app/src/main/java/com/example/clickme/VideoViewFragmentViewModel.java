@@ -12,10 +12,15 @@ public class VideoViewFragmentViewModel extends ViewModel {
     private MutableLiveData<Boolean> isProcessing = new MutableLiveData<>();
     private MutableLiveData<MJpegViewService.MyBinder> mJpegViewServiceBinder = new MutableLiveData<>();
     private MutableLiveData<Boolean> isActivityHidden = new MutableLiveData<>();
+    private MutableLiveData<Boolean> isBeepNeeded = new MutableLiveData<>();
     private MutableLiveData<MinimizedActivityService.MyBinder> minimizedActivityBinder = new MutableLiveData<>();
 
     public LiveData<Boolean> getIsVideoProcessing(){
         return isProcessing;
+    }
+
+    public LiveData<Boolean> getIsBeepNeeded(){
+        return isBeepNeeded;
     }
 
     public LiveData<MJpegViewService.MyBinder> getMJVSBinder(){
@@ -62,6 +67,10 @@ public class VideoViewFragmentViewModel extends ViewModel {
 
     public void setIsProcessing(Boolean result){
         isProcessing.postValue(result);
+    }
+
+    public void setIsBeepNeeded(Boolean result){
+        isBeepNeeded.postValue(result);
     }
 
     public ServiceConnection getMASConnection(){
