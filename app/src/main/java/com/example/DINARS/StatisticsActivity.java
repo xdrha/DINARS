@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -48,7 +48,6 @@ public class StatisticsActivity extends AppCompatActivity {
     private double avgPhone = 0;
     private double avgCoffee = 0;
     private double avgDrowsiness = 0;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,11 +104,11 @@ public class StatisticsActivity extends AppCompatActivity {
 
     }
 
-    public void finishActivity(){
+    private void finishActivity(){
         this.finish();
     }
 
-    public void showErrorDialog(){
+    private void showErrorDialog(){
         AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
         builder.setMessage("Server is not available!");
 
@@ -125,7 +124,7 @@ public class StatisticsActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    public void checkAvailability(){
+    private void checkAvailability(){
 
         StringRequest checkAvailabilityRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "check_availability",
                 new Response.Listener<String>()
@@ -153,14 +152,14 @@ public class StatisticsActivity extends AppCompatActivity {
         queue.add(checkAvailabilityRequest);
     }
 
-    public void loadGraph(String type){
+    private void loadGraph(String type){
         Map<String, String> parameters = new HashMap<>();
         parameters.put("type", type);
 
         graphView.setImageDrawable(LoadImage(buildURI(getResources().getString(R.string.urlServer) + "get_graph", parameters)));
     }
 
-    public static String buildURI(String url, Map<String, String> params) {
+    private String buildURI(String url, Map<String, String> params) {
 
         Uri.Builder builder = Uri.parse(url).buildUpon();
         for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -170,7 +169,7 @@ public class StatisticsActivity extends AppCompatActivity {
         return builder.build().toString();
     }
 
-    public void loadStatistics(){
+    private void loadStatistics(){
 
         StringRequest loadStatsRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "load_graph_data",
                 new Response.Listener<String>()
@@ -209,7 +208,7 @@ public class StatisticsActivity extends AppCompatActivity {
         queue.add(loadStatsRequest);
     }
 
-    public void setColor(double value){
+    private void setColor(double value){
 
         average_progress.setProgress((int)(value * 100));
         int color;
@@ -234,7 +233,7 @@ public class StatisticsActivity extends AppCompatActivity {
         danger_value.setTextColor(color);
     }
 
-    public void setAverageValues(String type){
+    private void setAverageValues(String type){
 
         if(type == "overall"){
             average_value.setText(String.valueOf(avgOverall));
@@ -254,7 +253,7 @@ public class StatisticsActivity extends AppCompatActivity {
         }
     }
 
-    public static Drawable LoadImage(String url) {
+    private static Drawable LoadImage(String url) {
         try {
             InputStream is = (InputStream) new URL(url).getContent();
             Drawable d = Drawable.createFromStream(is, "src name");

@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;

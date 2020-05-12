@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;

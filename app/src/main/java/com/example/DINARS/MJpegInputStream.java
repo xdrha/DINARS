@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;

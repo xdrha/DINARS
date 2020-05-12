@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -22,15 +23,16 @@ import android.widget.Toast;
 
 public class MinimizedActivityService extends Service{
 
-    public LinearLayout LL;
-    public WindowManager wm;
+    private LinearLayout LL;
+    private WindowManager wm;
     public TextView distraction_label;
     public ProgressBar distraction_level_bar;
     public TextView distraction_value;
     public ImageView warning_image;
     public ImageView stop_image;
-    public ImageButton close_button;
+    private ImageButton close_button;
     private WindowManager.LayoutParams params;
+    public MediaPlayer beepPlayer;
 
     private IBinder mBinder = new MinimizedActivityService.MyBinder();
 
@@ -42,7 +44,6 @@ public class MinimizedActivityService extends Service{
             return MinimizedActivityService.this;
         }
     }
-
 
     @Nullable
     @Override
@@ -62,6 +63,7 @@ public class MinimizedActivityService extends Service{
         }
 
         wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        beepPlayer = MediaPlayer.create(getApplicationContext(), R.raw.beep_long);
 
         LL = new LinearLayout(this);
         LL.setOrientation(LinearLayout.HORIZONTAL);

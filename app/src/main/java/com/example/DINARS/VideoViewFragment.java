@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
@@ -17,7 +17,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -40,10 +39,9 @@ public class VideoViewFragment extends Fragment {
 
     private RequestQueue queue;
 
-    private MinimizedActivityService MAS;
-
     private VideoViewFragmentViewModel VVFVM;
     private MJpegViewService MVS;
+    private MinimizedActivityService MAS;
     private Boolean accidentallyMinimized = true;
     private Intent serviceIntent1;
     private Intent serviceIntent2;
@@ -51,21 +49,20 @@ public class VideoViewFragment extends Fragment {
     private Statistics statistics = new Statistics();
     private int statisticCounter = 0;
 
-    public ProgressBar distraction_level_bar;
-    public TextView distraction_label;
-    public TextView distraction_value;
-    public Button calibration_button;
-    public Button statistics_button;
-    public Button minimize_button;
-    public ImageButton break_button;
-    public ImageView stop_image;
-    public ImageView warning_image;
-    public LinearLayout lll;
+    private ProgressBar distraction_level_bar;
+    private TextView distraction_label;
+    private TextView distraction_value;
+    private Button calibration_button;
+    private Button statistics_button;
+    private Button minimize_button;
+    private ImageButton break_button;
+    private ImageView stop_image;
+    private ImageView warning_image;
     private MJpegView MV;
 
-    public MediaPlayer beepPlayer;
-    public int beepStatus = 0;
-    public int beepDelay = 500;
+    private MediaPlayer beepPlayer;
+    private int beepStatus = 0;
+    private int beepCounter = 0;
 
     @Nullable
     @Override
@@ -82,7 +79,6 @@ public class VideoViewFragment extends Fragment {
         break_button = view.findViewById(R.id.break_button);
         stop_image = view.findViewById(R.id.stop_image);
         warning_image = view.findViewById(R.id.warning_image);
-        lll = view.findViewById(R.id.lll);
 
         distraction_label.setTextColor(Color.GREEN);
         distraction_value.setTextColor(Color.GREEN);
@@ -101,7 +97,10 @@ public class VideoViewFragment extends Fragment {
 
                    if(MVS.calibrationMode == 0) MVS.calibrationMode = 1;
                    else
-                       if(MVS.calibrationMode == 1) MVS.calibrationMode = 2;
+                       if(MVS.calibrationMode == 1) {
+                           MVS.calibrationMode = 2;
+                           calibration_button.setEnabled(false);
+                       }
 
                    break_button.setEnabled(false);
                    break_button.setImageResource(R.drawable.coffee_disabled);
@@ -187,6 +186,7 @@ public class VideoViewFragment extends Fragment {
                                         if (!MVS.isPaused)
                                             minimize_button.setEnabled(true);
                                         break_button.setEnabled(true);
+                                        calibration_button.setEnabled(true);
                                         break_button.setImageResource(R.drawable.coffee);
                                         if (MVS.isPaused)
                                             statistics_button.setEnabled(true);
@@ -195,6 +195,9 @@ public class VideoViewFragment extends Fragment {
                                         setProgress(MVS.globalDistraction);
                                         makeStatistic(MVS.globalDistraction, MVS.phoneDistraction, MVS.coffeeDistraction, MVS.headTiltedFactor + MVS.eyesClosedFactor);
                                     }
+                                }
+                                if(MVS.calibrationMode == 1){
+                                    calibration_button.setEnabled(true);
                                 }
                                 handler.postDelayed(this, 200);
                             }
@@ -214,10 +217,24 @@ public class VideoViewFragment extends Fragment {
                     public void run() {
                         if (aBoolean) {
                             if(MVS != null) {
-                                if (beepStatus > 0 && MVS.calibrationMode == 0 && !MVS.isPaused)
-                                    beepPlayer.start();
-                                handler.postDelayed(this, beepDelay);
+                                if (beepStatus > 0 && MVS.calibrationMode == 0 && !MVS.isPaused) {
+                                    if (MVS.globalDistraction >= 80) {
+                                        if(beepCounter >= 3) beepCounter = 0;
+                                    }
+                                    else{
+                                        if(beepCounter >= 10) beepCounter = 0;
+                                    }
+                                    if(beepCounter == 0) {
+                                        if(!MV.minimized) beepPlayer.start();
+                                        else MAS.beepPlayer.start();
+                                    }
+                                    beepCounter++;
+                                    handler.postDelayed(this, 200);
+                                }
                             }
+                        }
+                        else{
+                            beepCounter = 0;
                         }
                     }
                 };
@@ -280,7 +297,7 @@ public class VideoViewFragment extends Fragment {
         return view;
     }
 
-    public void makeStatistic(int globalDistraction, int phoneDistraction, int coffeeDistraction, int drowsinessLevel){
+    private void makeStatistic(int globalDistraction, int phoneDistraction, int coffeeDistraction, int drowsinessLevel){
 
         if(globalDistraction > 100) globalDistraction = 100;
 
@@ -296,7 +313,7 @@ public class VideoViewFragment extends Fragment {
         }
     }
 
-    public void sendStatistics(){
+    private void sendStatistics(){
 
         JSONObject statistic = new JSONObject();
         try {
@@ -359,7 +376,7 @@ public class VideoViewFragment extends Fragment {
 
     }
 
-    public void clearStatistics(){
+    private void clearStatistics(){
         StringRequest clearStatisticsRequest = new StringRequest(Request.Method.GET, getResources().getString(R.string.urlServer) + "clear_stats",
                 new Response.Listener<String>() {
                     @Override
@@ -381,21 +398,11 @@ public class VideoViewFragment extends Fragment {
         queue.add(clearStatisticsRequest);
     }
 
-    public void doBeep(int distraction){
+    private void doBeep(int distraction){
         if(distraction >= 50){
-            if(distraction >= 80){
-                if(beepStatus == 0) {
-                    VVFVM.setIsBeepNeeded(true);
-                    beepStatus = 1;
-                }
-                beepDelay = 300;
-            }
-            else{
-                if(beepStatus == 0) {
-                    VVFVM.setIsBeepNeeded(true);
-                    beepStatus = 1;
-                }
-                beepDelay = 1000;
+            if(beepStatus == 0) {
+                VVFVM.setIsBeepNeeded(true);
+                beepStatus = 1;
             }
         }
         else{
@@ -406,7 +413,7 @@ public class VideoViewFragment extends Fragment {
         }
     }
 
-    public void setProgress(int distraction){
+    private void setProgress(int distraction){
 
         doBeep(distraction);
 
@@ -469,13 +476,13 @@ public class VideoViewFragment extends Fragment {
         }
     }
 
-    public void minimize(){
+    private void minimize(){
         MV.minimized = true;
         VVFVM.setIsHidden(true);
         MAS.resumeInterface();
     }
 
-    public void moveMainActivityToFront(){
+    private void moveMainActivityToFront(){
         Intent mainActivity = new Intent(getActivity(), MainActivity.class);
         mainActivity.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startActivity(mainActivity);
@@ -519,19 +526,19 @@ public class VideoViewFragment extends Fragment {
         super.onStop();
     }
 
-    public void startService1(){
+    private void startService1(){
         serviceIntent1 = new Intent(getActivity(), MinimizedActivityService.class);
         getActivity().startService(serviceIntent1);
         getActivity().bindService(serviceIntent1, VVFVM.getMASConnection(), Context.BIND_AUTO_CREATE);
     }
 
-    public void startService2(){
+    private void startService2(){
         serviceIntent2 = new Intent(getActivity(), MJpegViewService.class);
         getActivity().startService(serviceIntent2);
         getActivity().bindService(serviceIntent2, VVFVM.getMJVSConnection(), Context.BIND_AUTO_CREATE);
     }
 
-    public class DoRead extends AsyncTask<String, Void, MJpegInputStream> {
+    private class DoRead extends AsyncTask<String, Void, MJpegInputStream> {
 
         protected MJpegInputStream doInBackground(String... Url) {
             //TODO: if camera has authentication deal with it and don't just not work

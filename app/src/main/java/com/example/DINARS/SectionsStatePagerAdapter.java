@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;

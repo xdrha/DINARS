@@ -1,4 +1,4 @@
-package com.example.clickme;
+package com.example.DINARS;
 
 import android.app.AlertDialog;
 import android.app.Service;
@@ -44,24 +44,22 @@ public class MJpegViewService extends Service {
     private int displayMode;
     public Boolean isMinimized = false;
     public Boolean isPaused = false;
-    public Boolean afterCalibrationBreak = false;
-    public Boolean faceNotFound = false;
+    private Boolean afterCalibrationBreak = false;
 
-    //TODO calibration variables
+    // calibration variables
     public int calibrationMode = 0;
-    public Boolean faceFound = false;
-    public Boolean eyesFound = false;
-    public Boolean wearingGlasses = false;
-    public int progressRectangle = 0;
+    private Boolean faceFound = false;
+    private Boolean eyesFound = false;
+    private Boolean wearingGlasses = false;
+    private int progressRectangle = 0;
 
-    //TODO OpenCV variables
+    // OpenCV variables
     private Mat mRgba;
     private Mat mGray;
     private Mat mat;
 
     private static final Scalar FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);
     private static final Scalar OBJECT_RECT_COLOR = new Scalar(255, 0, 0, 255);
-    private static final Scalar EYE_RECT_COLOR = new Scalar(0, 0, 255, 255);
 
     private File phoneCascadeFile;
     private File faceCascadeFile;
@@ -72,25 +70,25 @@ public class MJpegViewService extends Service {
     private CascadeClassifier faceDetector;
     private CascadeClassifier eyeDetector;
 
-    //TODO distraction meter variables
+    // distraction meter variables
     public int globalDistraction = 0;
     public int phoneDistraction = 0;
     public int coffeeDistraction = 0;
     public int eyesClosedFactor = 0;
     public int headTiltedFactor = 0;
-    public int decisionMatrix[][] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
-    public int eyesClosedArray[] = {0,0,0,0,0,0,0,0,0,0};
-    public int headTiltedArray[] = {0,0,0,0,0,0,0,0,0,0};
+    private int decisionMatrix[][] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
+    private int eyesClosedArray[] = {0,0,0,0,0,0,0,0,0,0};
+    private int headTiltedArray[] = {0,0,0,0,0,0,0,0,0,0};
 
-    public int phoneMaxHeight = 0;
-    public int phoneMaxWidth = 0;
-    public int coffeeMaxHeight = 0;
-    public int coffeeMaxWidth = 0;
+    private int phoneMaxHeight = 0;
+    private int phoneMaxWidth = 0;
+    private int coffeeMaxHeight = 0;
+    private int coffeeMaxWidth = 0;
 
-    public int phoneMinHeight = 1000;
-    public int phoneMinWidth = 1000;
-    public int coffeeMinHeight = 1000;
-    public int coffeeMinWidth = 1000;
+    private int phoneMinHeight = 1000;
+    private int phoneMinWidth = 1000;
+    private int coffeeMinHeight = 1000;
+    private int coffeeMinWidth = 1000;
 
     private CascadeClassifier newCascadeClassifier(File mCascadeFile, InputStream is) throws IOException{
         FileOutputStream os = new FileOutputStream(mCascadeFile);
@@ -106,7 +104,7 @@ public class MJpegViewService extends Service {
         return new CascadeClassifier(mCascadeFile.getAbsolutePath());
     }
 
-    public void initializeOpenCVDependencies(){
+    private void initializeOpenCVDependencies(){
 
         try {
             // load cascade file from application resources
@@ -213,7 +211,7 @@ public class MJpegViewService extends Service {
         }
     }
 
-    public int makeDecision(){
+    private int makeDecision(){
 
         int countPhones = 0;
         int countCoffees = 0;
@@ -229,7 +227,7 @@ public class MJpegViewService extends Service {
         }
 
         if(decisionMatrix[4][0] == 0 && decisionMatrix[4][1] == 0) return 0; //ked nic nepride nema co vykreslit :(
-        if(countPhones <= 2 && countCoffees <= 2) return 0;
+        if(countPhones <= 1 && countCoffees <= 1) return 0;
         if(countCoffees > countPhones && decisionMatrix[3][1] == 1) return 2;
         else
             if(decisionMatrix[3][0] == 1) return 1;
@@ -237,7 +235,7 @@ public class MJpegViewService extends Service {
         return 0;
     }
 
-    public void drawCalibrationMode(){
+    private void drawCalibrationMode(){
         Mat roi = mRgba.clone();
         double opacity = 0.7;
         Imgproc.rectangle(roi, new Point(0,0), new Point(420, roi.height()), new Scalar(0,0,0),-1);
@@ -249,7 +247,7 @@ public class MJpegViewService extends Service {
         Imgproc.rectangle(mRgba, new Point(424,34), new Point(856, 396), new Scalar(255,255,0,255),5);
     }
 
-    public void findFaceAndEyes(){
+    private void findFaceAndEyes(){
 
         MatOfRect faces = new MatOfRect();
         MatOfRect eyes = new MatOfRect();
@@ -275,7 +273,7 @@ public class MJpegViewService extends Service {
 
             Mat faceMat = mGray.submat(facesArray[0]);
             if (eyeDetector != null)
-                eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 phone cascade)
+                eyeDetector.detectMultiScale(faceMat, eyes, 1.5, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.5, 10 eye cascade)
                         new Size(10, 10), new Size(100, 100));
 
             if (!eyes.empty()) {
@@ -305,7 +303,7 @@ public class MJpegViewService extends Service {
         }
     }
 
-    public int computeDrowsinessFactor(int[] array){
+    private int computeDrowsinessFactor(int[] array){
         //ak prva polka je == 0 -> vrat sucet druhej
         //ak prva polka je > 0 && druha polka > 0 -> vrat sucet
 
@@ -323,7 +321,7 @@ public class MJpegViewService extends Service {
         else return secondSecondCount * 10;
     }
 
-    public Mat recognize(Mat inputFrame) {
+    private Mat recognize(Mat inputFrame) {
 
         mRgba = inputFrame;
         Imgproc.cvtColor(mRgba, mGray, Imgproc.COLOR_RGB2GRAY);
@@ -435,6 +433,7 @@ public class MJpegViewService extends Service {
 
                                 AlertDialog dialog = builder.create();
                                 dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                                dialog.setCanceledOnTouchOutside(false);
                                 dialog.show();
                             }
                         }
@@ -462,7 +461,6 @@ public class MJpegViewService extends Service {
 
                     if (!faces.empty()) {
 
-                        faceNotFound = false;
                         headTiltedArray[9] = 0;
 
                         facesArray = faces.toArray();
@@ -509,7 +507,6 @@ public class MJpegViewService extends Service {
                                 eyesClosedArray[9] = 1;
                         }
                     } else {
-                        faceNotFound = true;
                         headTiltedArray[9] = 1;
                     }
 
@@ -520,15 +517,15 @@ public class MJpegViewService extends Service {
 
                     //region object detection region
 
-                    if (phoneDetector != null)
+                    /*if (phoneDetector != null)
                         phoneDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(0, 200, mGray.width(), 520)),
-                                phones, 1.5, 400, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 phone cascade)
-                                new Size(150, 150), new Size(250, 250));
-
-                    /*if (coffeeDetector != null)
-                        coffeeDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(0, 200, mGray.width(), 520)),
-                                coffees, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee cascade)
+                                phones, 1.6, 350, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 phone cascade)
                                 new Size(150, 150), new Size(250, 250));*/
+
+                    if (coffeeDetector != null)
+                        coffeeDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(0, 200, mGray.width(), 520)),
+                                coffees, 2, 20, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 coffee_cascade)
+                                new Size(150, 150), new Size(250, 250));
 
 
                     if (!phones.empty()) decisionMatrix[4][0] = 1;
@@ -566,15 +563,14 @@ public class MJpegViewService extends Service {
                             if(decisionMatrix[4][1] == 1) objectArray = coffees.toArray();
                             else objectArray = phones.toArray();
 
-                            System.out.println("////////////// velkost kavy: " + objectArray[0].height + ", " + objectArray[0].width);
-
                             if(objectArray[0].height > coffeeMaxHeight) coffeeMaxHeight = objectArray[0].height;
                             if(objectArray[0].width > coffeeMaxWidth) coffeeMaxWidth = objectArray[0].width;
                             if(objectArray[0].height < coffeeMinHeight) coffeeMinHeight = objectArray[0].height;
                             if(objectArray[0].width < coffeeMinWidth) coffeeMinWidth = objectArray[0].width;
 
-                            Imgproc.rectangle(mRgba, objectArray[0].tl(), objectArray[0].br(), OBJECT_RECT_COLOR, 3);
-                            Imgproc.putText(mRgba, "coffee", new Point(objectArray[0].x, objectArray[0].y - 3), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
+                            Imgproc.rectangle(mRgba, new Point(objectArray[0].x, objectArray[0].y + 200),
+                                    new Point(objectArray[0].x + objectArray[0].width, objectArray[0].y + 200 + objectArray[0].width), OBJECT_RECT_COLOR, 3);
+                            Imgproc.putText(mRgba, "coffee", new Point(objectArray[0].x, objectArray[0].y - 3 + 200), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
                         } else {
                             if (phoneDistraction > 0) phoneDistraction -= 5;
                             if (coffeeDistraction > 0) coffeeDistraction -= 5;
@@ -585,19 +581,17 @@ public class MJpegViewService extends Service {
             }
         }
 
-        System.out.println("/////////////////// max coffee dimensions: " + coffeeMaxHeight + coffeeMaxWidth);
         System.out.println("/////////////////// max phone dimensions: " + phoneMaxHeight + phoneMaxWidth);
-        System.out.println("/////////////////// min coffee dimensions: " + coffeeMinHeight + coffeeMinWidth);
         System.out.println("/////////////////// min phone dimensions: " + phoneMinHeight + phoneMinWidth);
 
         return mRgba;
     }
 
-    public void computeDistractionLevel(){
+    private void computeDistractionLevel(){
         globalDistraction = phoneDistraction + coffeeDistraction + headTiltedFactor + eyesClosedFactor;
     }
 
-    public Mat makePausedScreen(Mat inputFrame){
+    private Mat makePausedScreen(Mat inputFrame){
         mRgba = inputFrame;
         Mat roi = mRgba.clone();
         double opacity = 0.7;
@@ -628,9 +622,7 @@ public class MJpegViewService extends Service {
                                     bm = mIn.readMJpegFrame();
 
                                     if(bm != null && !afterCalibrationBreak) {
-                                        //
-                                        //TODO: tu sa bude diat rozpoznavanie veci atd.
-                                        //
+
                                         if(!isPaused || calibrationMode != 0) {
                                             Utils.bitmapToMat(bm, mat);
                                             mat = recognize(mat);
