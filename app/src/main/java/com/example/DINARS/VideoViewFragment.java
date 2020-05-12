@@ -217,6 +217,20 @@ public class VideoViewFragment extends Fragment {
                     public void run() {
                         if (aBoolean) {
                             if(MVS != null) {
+
+                                if(MVS.globalDistraction >= 50){ //urci beep status
+                                    if(beepStatus == 0) {
+                                        beepStatus = 1;
+                                        beepCounter = 10;
+                                    }
+                                }
+                                else{
+                                    if(beepStatus > 0) {
+                                        beepStatus = 0;
+                                        beepCounter = 10;
+                                    }
+                                }
+
                                 if (beepStatus > 0 && MVS.calibrationMode == 0 && !MVS.isPaused) {
                                     if (MVS.globalDistraction >= 80) {
                                         if(beepCounter >= 3) beepCounter = 0;
@@ -225,16 +239,12 @@ public class VideoViewFragment extends Fragment {
                                         if(beepCounter >= 10) beepCounter = 0;
                                     }
                                     if(beepCounter == 0) {
-                                        if(!MV.minimized) beepPlayer.start();
-                                        else MAS.beepPlayer.start();
+                                        beepPlayer.start();
                                     }
                                     beepCounter++;
-                                    handler.postDelayed(this, 200);
                                 }
+                                handler.postDelayed(this, 200);
                             }
-                        }
-                        else{
-                            beepCounter = 0;
                         }
                     }
                 };
@@ -291,6 +301,7 @@ public class VideoViewFragment extends Fragment {
         startService2();
         VVFVM.setIsHidden(false);
         VVFVM.setIsProcessing(true);
+        VVFVM.setIsBeepNeeded(true);
 
         clearStatistics();
 
@@ -401,13 +412,11 @@ public class VideoViewFragment extends Fragment {
     private void doBeep(int distraction){
         if(distraction >= 50){
             if(beepStatus == 0) {
-                VVFVM.setIsBeepNeeded(true);
                 beepStatus = 1;
             }
         }
         else{
             if(beepStatus > 0) {
-                VVFVM.setIsBeepNeeded(false);
                 beepStatus = 0;
             }
         }

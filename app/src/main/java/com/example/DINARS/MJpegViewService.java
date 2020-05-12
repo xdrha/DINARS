@@ -80,16 +80,6 @@ public class MJpegViewService extends Service {
     private int eyesClosedArray[] = {0,0,0,0,0,0,0,0,0,0};
     private int headTiltedArray[] = {0,0,0,0,0,0,0,0,0,0};
 
-    private int phoneMaxHeight = 0;
-    private int phoneMaxWidth = 0;
-    private int coffeeMaxHeight = 0;
-    private int coffeeMaxWidth = 0;
-
-    private int phoneMinHeight = 1000;
-    private int phoneMinWidth = 1000;
-    private int coffeeMinHeight = 1000;
-    private int coffeeMinWidth = 1000;
-
     private CascadeClassifier newCascadeClassifier(File mCascadeFile, InputStream is) throws IOException{
         FileOutputStream os = new FileOutputStream(mCascadeFile);
 
@@ -109,7 +99,7 @@ public class MJpegViewService extends Service {
         try {
             // load cascade file from application resources
 
-            InputStream isPhone = getResources().openRawResource(R.raw.cascade_phone);
+            InputStream isPhone = getResources().openRawResource(R.raw.haarcascade_phone);
             InputStream isCoffee = getResources().openRawResource(R.raw.haarcascade_coffee);
             InputStream isFace = getResources().openRawResource(R.raw.lbpcascade_frontalface);
             InputStream isEye = getResources().openRawResource(R.raw.haarcascade_eye);
@@ -227,8 +217,8 @@ public class MJpegViewService extends Service {
         }
 
         if(decisionMatrix[4][0] == 0 && decisionMatrix[4][1] == 0) return 0; //ked nic nepride nema co vykreslit :(
-        if(countPhones <= 1 && countCoffees <= 1) return 0;
-        if(countCoffees > countPhones && decisionMatrix[3][1] == 1) return 2;
+        if(countPhones <= 2 && countCoffees <= 2) return 0;
+        if(countCoffees >= countPhones && decisionMatrix[3][1] == 1) return 2;
         else
             if(decisionMatrix[3][0] == 1) return 1;
 
@@ -254,7 +244,7 @@ public class MJpegViewService extends Service {
 
         if (faceDetector != null)
             faceDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(420, 30, 440, 370)), faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
-                    new Size(100, 100), new Size(900, 900));
+                    new Size(200, 200), new Size(900, 900));
 
         org.opencv.core.Rect[] facesArray;
 
@@ -455,7 +445,7 @@ public class MJpegViewService extends Service {
 
                     if (faceDetector != null)
                         faceDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(420, 30, 440, 370)), faces, 1.1, 2, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (1.1, 2 face cascade)
-                                new Size(100, 100), new Size(400, 400));
+                                new Size(200, 200), new Size(400, 400));
 
                     org.opencv.core.Rect[] facesArray;
 
@@ -517,10 +507,10 @@ public class MJpegViewService extends Service {
 
                     //region object detection region
 
-                    /*if (phoneDetector != null)
+                    if (phoneDetector != null)
                         phoneDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(0, 200, mGray.width(), 520)),
-                                phones, 1.6, 350, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 phone cascade)
-                                new Size(150, 150), new Size(250, 250));*/
+                                phones, 2, 10, 0, // TODO: objdetect.CV_HAAR_SCALE_IMAGE (2, 20 phone cascade)
+                                new Size(150, 150), new Size(250, 250));
 
                     if (coffeeDetector != null)
                         coffeeDetector.detectMultiScale(mGray.submat(new org.opencv.core.Rect(0, 200, mGray.width(), 520)),
@@ -544,13 +534,6 @@ public class MJpegViewService extends Service {
                         if(decisionMatrix[4][0] == 1) objectArray = phones.toArray();
                         else objectArray = coffees.toArray();
 
-                        System.out.println("////////////// velkost telefonu: " + objectArray[0].height + ", " + objectArray[0].width);
-
-                        if(objectArray[0].height > phoneMaxHeight) phoneMaxHeight = objectArray[0].height;
-                        if(objectArray[0].width > phoneMaxWidth) phoneMaxWidth = objectArray[0].width;
-                        if(objectArray[0].height < phoneMinHeight) phoneMinHeight = objectArray[0].height;
-                        if(objectArray[0].width < phoneMinWidth) phoneMinWidth = objectArray[0].width;
-
                         Imgproc.rectangle(mRgba, new Point(objectArray[0].x, objectArray[0].y + 200),
                                 new Point(objectArray[0].x + objectArray[0].width, objectArray[0].y + 200 + objectArray[0].width), OBJECT_RECT_COLOR, 3);
                         Imgproc.putText(mRgba, "phone", new Point(objectArray[0].x, objectArray[0].y - 3 + 200), Core.FONT_HERSHEY_SIMPLEX, 1, OBJECT_RECT_COLOR, 2);
@@ -562,11 +545,6 @@ public class MJpegViewService extends Service {
 
                             if(decisionMatrix[4][1] == 1) objectArray = coffees.toArray();
                             else objectArray = phones.toArray();
-
-                            if(objectArray[0].height > coffeeMaxHeight) coffeeMaxHeight = objectArray[0].height;
-                            if(objectArray[0].width > coffeeMaxWidth) coffeeMaxWidth = objectArray[0].width;
-                            if(objectArray[0].height < coffeeMinHeight) coffeeMinHeight = objectArray[0].height;
-                            if(objectArray[0].width < coffeeMinWidth) coffeeMinWidth = objectArray[0].width;
 
                             Imgproc.rectangle(mRgba, new Point(objectArray[0].x, objectArray[0].y + 200),
                                     new Point(objectArray[0].x + objectArray[0].width, objectArray[0].y + 200 + objectArray[0].width), OBJECT_RECT_COLOR, 3);
@@ -580,10 +558,6 @@ public class MJpegViewService extends Service {
                 }
             }
         }
-
-        System.out.println("/////////////////// max phone dimensions: " + phoneMaxHeight + phoneMaxWidth);
-        System.out.println("/////////////////// min phone dimensions: " + phoneMinHeight + phoneMinWidth);
-
         return mRgba;
     }
 

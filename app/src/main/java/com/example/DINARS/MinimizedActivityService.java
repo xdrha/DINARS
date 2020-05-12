@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
-import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -32,7 +31,6 @@ public class MinimizedActivityService extends Service{
     public ImageView stop_image;
     private ImageButton close_button;
     private WindowManager.LayoutParams params;
-    public MediaPlayer beepPlayer;
 
     private IBinder mBinder = new MinimizedActivityService.MyBinder();
 
@@ -63,7 +61,6 @@ public class MinimizedActivityService extends Service{
         }
 
         wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        beepPlayer = MediaPlayer.create(getApplicationContext(), R.raw.beep_long);
 
         LL = new LinearLayout(this);
         LL.setOrientation(LinearLayout.HORIZONTAL);
